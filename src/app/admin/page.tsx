@@ -61,7 +61,7 @@ export default function AdminDashboard() {
   const [speakingPrompt, setSpeakingPrompt] = useState('');
   const [speakingChallenge, setSpeakingChallenge] = useState('');
 
-  // Form States - Interactive Activity (Word Builder & Typing Challenge)
+  // Form States - Interactive Activity
   const [actLessonId, setActLessonId] = useState('');
   const [actType, setActType] = useState<'word_builder' | 'fill_in_blank'>('word_builder');
   const [actTitle, setActTitle] = useState('');
@@ -80,7 +80,7 @@ export default function AdminDashboard() {
   const [optD, setOptD] = useState('');
   const [correctOptIndex, setCorrectOptIndex] = useState('0');
 
-  // Form States - Gamification & XP Configurations
+  // Form States - Gamification & XP Configurations (PROPERLY DECLARED AT TOP LEVEL)
   const [ptsLesson, setPtsLesson] = useState(50);
   const [ptsSpeaking, setPtsSpeaking] = useState(15);
   const [ptsActivity, setPtsActivity] = useState(10);
