@@ -14,7 +14,7 @@ import {
 export default function AdminDashboard() {
   // Navigation
   const [activeTab, setActiveTab] = useState<'dashboard' | 'schools' | 'staff' | 'students' | 'lessons' | 'activities' | 'quizzes' | 'gamification'>('dashboard');
-  
+   
   // Data Repositories
   const [schools, setSchools] = useState<any[]>([]);
   const [staffList, setStaffList] = useState<any[]>([]);
@@ -66,10 +66,8 @@ export default function AdminDashboard() {
   const [actType, setActType] = useState<'word_builder' | 'fill_in_blank'>('word_builder');
   const [actTitle, setActTitle] = useState('');
   const [actPoints, setActPoints] = useState('20');
-  // Typing Challenge fields
   const [actSentence, setActSentence] = useState('');
   const [actAnswer, setActAnswer] = useState('');
-  // Word Builder fields
   const [wbTargetWord, setWbTargetWord] = useState('');
   const [wbClue, setWbClue] = useState('');
 
@@ -82,11 +80,16 @@ export default function AdminDashboard() {
   const [optD, setOptD] = useState('');
   const [correctOptIndex, setCorrectOptIndex] = useState('0');
 
-  // Form States - Gamification
+  // Form States - Gamification & XP Configurations
   const [ptsLesson, setPtsLesson] = useState(50);
   const [ptsSpeaking, setPtsSpeaking] = useState(15);
   const [ptsActivity, setPtsActivity] = useState(10);
   const [ptsQuiz, setPtsQuiz] = useState(20);
+
+  const [lessonBaseXP, setLessonBaseXP] = useState(50);
+  const [lessonSpeechXP, setLessonSpeechXP] = useState(35);
+  const [lessonActivityXP, setLessonActivityXP] = useState(15);
+  const [lessonQuizXP, setLessonQuizXP] = useState(25);
 
   const [loading, setLoading] = useState(true);
   const [statusMsg, setStatusMsg] = useState('');
@@ -99,22 +102,18 @@ export default function AdminDashboard() {
 
   const fetchAllAdminData = async () => {
     setLoading(true);
-    // Fetch Schools
     const { data: sData } = await supabase.from('schools').select('*').order('created_at', { ascending: false });
     if (sData) {
       setSchools(sData);
       if (sData.length > 0 && !staffSchoolId) setStaffSchoolId(sData[0].id);
     }
 
-    // Fetch Staff
     const { data: stData } = await supabase.from('profiles').select('*, schools(name, code)').in('role', ['principal', 'teacher']);
     if (stData) setStaffList(stData);
 
-    // Fetch Students
     const { data: stuData } = await supabase.from('profiles').select('*, schools(name, code)').eq('role', 'student');
     if (stuData) setStudentsList(stuData);
 
-    // Fetch Lessons
     const { data: lData } = await supabase.from('lessons').select('*').order('grade', { ascending: true }).order('lesson_number', { ascending: true });
     if (lData) {
       setLessonsList(lData);
@@ -124,11 +123,9 @@ export default function AdminDashboard() {
       }
     }
 
-    // Fetch Badges
     const { data: bData } = await supabase.from('badges').select('*');
     if (bData) setBadgesList(bData);
 
-    // Fetch Speech Logs
     const { data: spData } = await supabase.from('speech_submissions').select('*, profiles(full_name, grade, section), lessons(title)');
     if (spData) setSpeechLogs(spData);
 
@@ -310,7 +307,6 @@ export default function AdminDashboard() {
     router.push('/login');
   };
 
-  // Filter Pipeline
   const filteredStudents = studentsList.filter(s => {
     const matchGrade = gradeFilter === 'All' || s.grade?.toString() === gradeFilter;
     const matchSection = sectionFilter === 'All' || s.section === sectionFilter;
@@ -354,7 +350,6 @@ export default function AdminDashboard() {
 
       {/* Main Container */}
       <main className="max-w-7xl w-full mx-auto p-6 space-y-6 flex-1">
-        {/* Status Toast */}
         {statusMsg && (
           <div className="flex items-center gap-2 p-4 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 rounded-2xl font-bold animate-in fade-in slide-in-from-top-2 duration-200">
             <CheckCircle2 className="w-5 h-5" /> {statusMsg}
@@ -396,13 +391,12 @@ export default function AdminDashboard() {
         {/* TAB: DASHBOARD OVERVIEW */}
         {activeTab === 'dashboard' && (
           <div className="space-y-6">
-            {/* Realtime KPI Matrix */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-4 opacity-10"><School className="w-16 h-16 text-indigo-400" /></div>
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Schools</span>
                 <div className="text-4xl font-black text-white mt-1">{schools.length}</div>
-                <div className="text-xs text-emerald-400 font-bold mt-2 flex items-center gap-1">100% Data Isolated</div>
+                <div className="text-xs text-emerald-400 font-bold mt-2">100% Data Isolated</div>
               </div>
 
               <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl relative overflow-hidden">
@@ -429,7 +423,6 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* Recent Speech Evaluations */}
             <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6">
               <h2 className="text-lg font-black text-white mb-4 flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-indigo-400" /> Recent AI Speech Submissions Across Schools
@@ -937,44 +930,6 @@ export default function AdminDashboard() {
         )}
 
         {/* TAB: LESSONS CURRICULUM */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 bg-slate-950 p-4 rounded-2xl border border-slate-800">
-  <div>
-    <label className="block text-[11px] font-bold text-slate-400 mb-1">Total Lesson Base XP</label>
-    <input
-      type="number"
-      value={lessonBaseXP}
-      onChange={(e) => setLessonBaseXP(e.target.value)}
-      className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-white font-mono text-xs"
-    />
-  </div>
-  <div>
-    <label className="block text-[11px] font-bold text-slate-400 mb-1">Speech Max XP</label>
-    <input
-      type="number"
-      value={lessonSpeechXP}
-      onChange={(e) => setLessonSpeechXP(e.target.value)}
-      className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-white font-mono text-xs"
-    />
-  </div>
-  <div>
-    <label className="block text-[11px] font-bold text-slate-400 mb-1">Activity Max XP</label>
-    <input
-      type="number"
-      value={lessonActivityXP}
-      onChange={(e) => setLessonActivityXP(e.target.value)}
-      className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-white font-mono text-xs"
-    />
-  </div>
-  <div>
-    <label className="block text-[11px] font-bold text-slate-400 mb-1">Quiz Max XP</label>
-    <input
-      type="number"
-      value={lessonQuizXP}
-      onChange={(e) => setLessonQuizXP(e.target.value)}
-      className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-white font-mono text-xs"
-    />
-  </div>
-</div>
         {activeTab === 'lessons' && (
           <div className="space-y-6">
             <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl">
@@ -982,6 +937,45 @@ export default function AdminDashboard() {
                 <BookOpen className="w-5 h-5 text-emerald-400" /> Master Curriculum Builder (Grades 1-10 Global)
               </h2>
               <form onSubmit={handleCreateLesson} className="space-y-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 bg-slate-950 p-4 rounded-2xl border border-slate-800 mb-4">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-400 mb-1">Total Lesson Base XP</label>
+                    <input
+                      type="number"
+                      value={lessonBaseXP}
+                      onChange={(e) => setLessonBaseXP(Number(e.target.value))}
+                      className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-white font-mono text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-400 mb-1">Speech Max XP</label>
+                    <input
+                      type="number"
+                      value={lessonSpeechXP}
+                      onChange={(e) => setLessonSpeechXP(Number(e.target.value))}
+                      className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-white font-mono text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-400 mb-1">Activity Max XP</label>
+                    <input
+                      type="number"
+                      value={lessonActivityXP}
+                      onChange={(e) => setLessonActivityXP(Number(e.target.value))}
+                      className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-white font-mono text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-400 mb-1">Quiz Max XP</label>
+                    <input
+                      type="number"
+                      value={lessonQuizXP}
+                      onChange={(e) => setLessonQuizXP(Number(e.target.value))}
+                      className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-white font-mono text-xs"
+                    />
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-400 mb-1">Target Grade</label>
