@@ -36,11 +36,21 @@ export default function AdminDashboard() {
   const [editingActivityId, setEditingActivityId] = useState<string | null>(null);
   const [editingQuizId, setEditingQuizId] = useState<string | null>(null);
 
-  // Filter States
+  // Global Filter States
   const [gradeFilter, setGradeFilter] = useState('All');
   const [sectionFilter, setSectionFilter] = useState('All');
   const [schoolFilter, setSchoolFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Specialized Filters for Activities & Quizzes Tabs
+  const [actGradeFilter, setActGradeFilter] = useState('All');
+  const [actLessonFilter, setActLessonFilter] = useState('All');
+  const [actTypeFilter, setActTypeFilter] = useState('All');
+  const [actSearchQuery, setActSearchQuery] = useState('');
+
+  const [quizGradeFilter, setQuizGradeFilter] = useState('All');
+  const [quizLessonFilter, setQuizLessonFilter] = useState('All');
+  const [quizSearchQuery, setQuizSearchQuery] = useState('');
 
   // Form States - School
   const [schoolName, setSchoolName] = useState('');
@@ -200,12 +210,11 @@ Drill 2: How are you feeling today? I am very happy today.`
 
   // 1-Click Complete Auto Deployment
   const handleAutoDeployLesson1With15Questions = async () => {
-    if (!confirm('This will automatically publish Lesson 1 ("Greetings") with teacher instructions and deploy all 15 at-home practice activities (5 Wordwall, 5 Typing, 5 Quizzes) into Supabase. Proceed?')) return;
+    if (!confirm('This will automatically publish Lesson 1 ("Greetings") with teacher instructions and deploy all 15 at-home practice activities into Supabase. Proceed?')) return;
 
     setStatusMsg('Auto-deploying Lesson 1 and all 15 questions...');
 
     try {
-      // 1. Insert/Publish Lesson 1
       const { data: lesson, error: lErr } = await supabase.from('lessons').insert([{
         grade: 1,
         lesson_number: 1,
@@ -265,7 +274,6 @@ Drill 2: How are you feeling today? I am very happy today.`
         return;
       }
 
-      // 2. Insert 5 Wordwall Activities & 5 Typing Challenges
       await supabase.from('activities').insert([
         { lesson_id: lesson.id, type: 'word_builder', title: 'Build Word: HELLO', instruction: 'Arrange the scrambled letters to spell the correct word (Max 3 attempts).', question_data: { target_word: 'HELLO', clue: 'A friendly, polite greeting word.' }, points_reward: 8 },
         { lesson_id: lesson.id, type: 'word_builder', title: 'Build Word: MORNING', instruction: 'Arrange the scrambled letters to spell the correct word (Max 3 attempts).', question_data: { target_word: 'MORNING', clue: 'The early part of the day before noon.' }, points_reward: 8 },
@@ -280,7 +288,6 @@ Drill 2: How are you feeling today? I am very happy today.`
         { lesson_id: lesson.id, type: 'fill_in_blank', title: 'Complete Sentence 5', instruction: 'Type the correct missing word into the blank space (Max 3 attempts).', question_data: { sentence: 'Goodbye teacher, see you ___!', acceptable_answers: ['tomorrow', 'Tomorrow'] }, points_reward: 8 }
       ]);
 
-      // 3. Insert 5 Multiple-Choice Quizzes
       await supabase.from('quizzes').insert([
         { lesson_id: lesson.id, question: 'What is the best greeting to say when you arrive at school at 8:30 AM?', options: ['Good night', 'Good morning', 'Good evening', 'Goodbye'], correct_option_index: 1, marks: 8 },
         { lesson_id: lesson.id, question: 'If your classmate asks "How are you today?", what should you say?', options: ['I am in Grade 1.', 'I am fine, thank you!', 'My name is Peter.', 'See you tomorrow.'], correct_option_index: 1, marks: 8 },
@@ -517,7 +524,6 @@ Drill 2: How are you feeling today? I am very happy today.`
     setVocabInput(Array.isArray(lesson.vocabulary) ? lesson.vocabulary.map((v: any) => `${v.word || v}${v.meaning ? `: ${v.meaning}` : ''}`).join('\n') : '');
     setUsefulSentences(Array.isArray(lesson.useful_sentences) ? lesson.useful_sentences.map((s: any) => s.sentence || s).join('\n') : '');
     
-    // Format conversation dialogue back to text for editing
     if (Array.isArray(lesson.conversation_dialogue)) {
       setConversationDialogue(lesson.conversation_dialogue.map((c: any) => `${c.speaker || 'Speaker'}: ${c.line || ''}`).join('\n'));
     } else {
@@ -795,6 +801,25 @@ Drill 2: How are you feeling today? I am very happy today.`
     const matchSchool = schoolFilter === 'All' || s.school_id === schoolFilter;
     const matchSearch = s.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) || s.email?.toLowerCase().includes(searchQuery.toLowerCase());
     return matchGrade && matchSection && matchSchool && matchSearch;
+  });
+
+  // Filtered Wordwall Activities
+  const filteredActivities = activitiesList.filter(act => {
+    const matchGrade = actGradeFilter === 'All' || act.lessons?.grade?.toString() === actGradeFilter;
+    const matchLesson = actLessonFilter === 'All' || act.lesson_id === actLessonFilter;
+    const matchType = actTypeFilter === 'All' || act.type === actTypeFilter;
+    const matchSearch = act.title?.toLowerCase().includes(actSearchQuery.toLowerCase()) || 
+      act.question_data?.target_word?.toLowerCase().includes(actSearchQuery.toLowerCase()) ||
+      act.question_data?.sentence?.toLowerCase().includes(actSearchQuery.toLowerCase());
+    return matchGrade && matchLesson && matchType && matchSearch;
+  });
+
+  // Filtered Quizzes
+  const filteredQuizzes = quizzesList.filter(q => {
+    const matchGrade = quizGradeFilter === 'All' || q.lessons?.grade?.toString() === quizGradeFilter;
+    const matchLesson = quizLessonFilter === 'All' || q.lesson_id === quizLessonFilter;
+    const matchSearch = q.question?.toLowerCase().includes(quizSearchQuery.toLowerCase());
+    return matchGrade && matchLesson && matchSearch;
   });
 
   return (
@@ -1922,7 +1947,7 @@ Drill 2: How are you feeling today? I am very happy today.`
           </div>
         )}
 
-        {/* TAB: ACTIVITIES & QUIZZES */}
+        {/* TAB: ACTIVITIES WITH FULL FILTERS */}
         {activeTab === 'activities' && (
           <div className="space-y-6">
             <div className="bg-white border border-slate-200 p-6 rounded-3xl space-y-4 shadow-sm">
@@ -1950,17 +1975,78 @@ Drill 2: How are you feeling today? I am very happy today.`
                     <input type="text" value={actAnswer} onChange={(e) => setActAnswer(e.target.value)} placeholder="morning, Morning" className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold" required />
                   </>
                 )}
-                <button type="submit" className="md:col-span-3 py-3.5 bg-amber-600 hover:bg-amber-500 text-white font-black rounded-xl transition">Deploy Activity (+8 XP)</button>
+                <button type="submit" className="md:col-span-3 py-3.5 bg-amber-600 hover:bg-amber-500 text-white font-black rounded-xl transition">
+                  {editingActivityId ? 'Update Activity' : 'Deploy Activity (+8 XP)'}
+                </button>
               </form>
             </div>
 
+            {/* Activities Filter Toolbar */}
+            <div className="bg-white border border-slate-200 p-4 rounded-3xl flex flex-wrap gap-3 items-center justify-between shadow-sm">
+              <div className="flex flex-wrap gap-3 items-center">
+                <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 rounded-xl border border-slate-200 text-sm">
+                  <Search className="w-4 h-4 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Search by word, sentence, or title..."
+                    value={actSearchQuery}
+                    onChange={(e) => setActSearchQuery(e.target.value)}
+                    className="bg-transparent outline-none text-slate-900 text-xs font-medium w-48 sm:w-64"
+                  />
+                </div>
+
+                <select
+                  value={actGradeFilter}
+                  onChange={(e) => {
+                    setActGradeFilter(e.target.value);
+                    setActLessonFilter('All');
+                  }}
+                  className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 outline-none"
+                >
+                  <option value="All">All Grades</option>
+                  {[1,2,3,4,5,6,7,8,9,10].map(g => (
+                    <option key={g} value={g.toString()}>Grade {g}</option>
+                  ))}
+                </select>
+
+                <select
+                  value={actLessonFilter}
+                  onChange={(e) => setActLessonFilter(e.target.value)}
+                  className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 outline-none max-w-xs truncate"
+                >
+                  <option value="All">All Lessons</option>
+                  {lessonsList
+                    .filter(l => actGradeFilter === 'All' || l.grade.toString() === actGradeFilter)
+                    .map(l => (
+                      <option key={l.id} value={l.id}>
+                        G{l.grade} L{l.lesson_number}: {l.title}
+                      </option>
+                    ))}
+                </select>
+
+                <select
+                  value={actTypeFilter}
+                  onChange={(e) => setActTypeFilter(e.target.value)}
+                  className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 outline-none"
+                >
+                  <option value="All">All Activity Types</option>
+                  <option value="word_builder">🧩 Word Builders</option>
+                  <option value="fill_in_blank">⌨️ Typing Challenges</option>
+                </select>
+              </div>
+
+              <div className="text-xs font-bold text-slate-500">
+                Showing <strong className="text-slate-900">{filteredActivities.length}</strong> of {activitiesList.length} Activities
+              </div>
+            </div>
+
+            {/* Filtered Activities List */}
             <div className="bg-white border border-slate-200 rounded-3xl p-6 space-y-4 shadow-sm">
-              <h3 className="font-bold text-base text-slate-900">All Deployed Wordwall Activities ({activitiesList.length})</h3>
               <div className="space-y-3">
-                {activitiesList.length === 0 ? (
-                  <p className="text-xs text-slate-500 italic">No activities deployed yet.</p>
+                {filteredActivities.length === 0 ? (
+                  <p className="text-xs text-slate-500 italic">No activities match your selected filter criteria.</p>
                 ) : (
-                  activitiesList.map(act => (
+                  filteredActivities.map(act => (
                     <div key={act.id} className="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex justify-between items-center">
                       <div>
                         <div className="flex items-center gap-2">
@@ -1972,7 +2058,11 @@ Drill 2: How are you feeling today? I am very happy today.`
                           </span>
                         </div>
                         <h4 className="font-bold text-slate-900 text-sm mt-1">{act.title}</h4>
-                        <p className="text-xs text-slate-500 mt-0.5">Reward: <strong className="text-amber-600">+{act.points_reward} XP</strong></p>
+                        {act.type === 'word_builder' ? (
+                          <p className="text-xs text-slate-500 mt-0.5">Target: <strong className="font-mono text-purple-600">{act.question_data?.target_word}</strong> • Clue: {act.question_data?.clue}</p>
+                        ) : (
+                          <p className="text-xs text-slate-500 mt-0.5">Sentence: "{act.question_data?.sentence}" • Answers: [{act.question_data?.acceptable_answers?.join(', ')}]</p>
+                        )}
                       </div>
                       <div className="flex gap-2">
                         <button onClick={() => handleSelectActivityForEdit(act)} className="p-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-xl" title="Edit Activity">
@@ -1990,6 +2080,7 @@ Drill 2: How are you feeling today? I am very happy today.`
           </div>
         )}
 
+        {/* TAB: QUIZZES WITH FULL FILTERS */}
         {activeTab === 'quizzes' && (
           <div className="space-y-6">
             <div className="bg-white border border-slate-200 p-6 rounded-3xl space-y-4 shadow-sm">
@@ -2013,24 +2104,75 @@ Drill 2: How are you feeling today? I am very happy today.`
                   <option value="2">Correct: Option C</option>
                   <option value="3">Correct: Option D</option>
                 </select>
-                <button type="submit" className="w-full py-3.5 bg-cyan-600 hover:bg-cyan-500 text-white font-black rounded-xl transition">Save Quiz Question (+8 XP)</button>
+                <button type="submit" className="w-full py-3.5 bg-cyan-600 hover:bg-cyan-500 text-white font-black rounded-xl transition">
+                  {editingQuizId ? 'Update Quiz Question' : 'Save Quiz Question (+8 XP)'}
+                </button>
               </form>
             </div>
 
+            {/* Quizzes Filter Toolbar */}
+            <div className="bg-white border border-slate-200 p-4 rounded-3xl flex flex-wrap gap-3 items-center justify-between shadow-sm">
+              <div className="flex flex-wrap gap-3 items-center">
+                <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 rounded-xl border border-slate-200 text-sm">
+                  <Search className="w-4 h-4 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Search question prompt..."
+                    value={quizSearchQuery}
+                    onChange={(e) => setQuizSearchQuery(e.target.value)}
+                    className="bg-transparent outline-none text-slate-900 text-xs font-medium w-48 sm:w-64"
+                  />
+                </div>
+
+                <select
+                  value={quizGradeFilter}
+                  onChange={(e) => {
+                    setQuizGradeFilter(e.target.value);
+                    setQuizLessonFilter('All');
+                  }}
+                  className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 outline-none"
+                >
+                  <option value="All">All Grades</option>
+                  {[1,2,3,4,5,6,7,8,9,10].map(g => (
+                    <option key={g} value={g.toString()}>Grade {g}</option>
+                  ))}
+                </select>
+
+                <select
+                  value={quizLessonFilter}
+                  onChange={(e) => setQuizLessonFilter(e.target.value)}
+                  className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 outline-none max-w-xs truncate"
+                >
+                  <option value="All">All Lessons</option>
+                  {lessonsList
+                    .filter(l => quizGradeFilter === 'All' || l.grade.toString() === quizGradeFilter)
+                    .map(l => (
+                      <option key={l.id} value={l.id}>
+                        G{l.grade} L{l.lesson_number}: {l.title}
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              <div className="text-xs font-bold text-slate-500">
+                Showing <strong className="text-slate-900">{filteredQuizzes.length}</strong> of {quizzesList.length} Quizzes
+              </div>
+            </div>
+
+            {/* Filtered Quizzes List */}
             <div className="bg-white border border-slate-200 rounded-3xl p-6 space-y-4 shadow-sm">
-              <h3 className="font-bold text-base text-slate-900">All Quiz Questions ({quizzesList.length})</h3>
               <div className="space-y-3">
-                {quizzesList.length === 0 ? (
-                  <p className="text-xs text-slate-500 italic">No quiz questions added yet.</p>
+                {filteredQuizzes.length === 0 ? (
+                  <p className="text-xs text-slate-500 italic">No quiz questions match your selected filter criteria.</p>
                 ) : (
-                  quizzesList.map(q => (
+                  filteredQuizzes.map(q => (
                     <div key={q.id} className="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex justify-between items-center">
                       <div>
                         <span className="text-xs font-bold text-cyan-600">
                           Grade {q.lessons?.grade} - Lesson {q.lessons?.lesson_number}: {q.lessons?.title}
                         </span>
                         <h4 className="font-bold text-slate-900 text-sm mt-1">{q.question}</h4>
-                        <div className="flex gap-2 mt-2 text-[11px] text-slate-600">
+                        <div className="flex flex-wrap gap-2 mt-2 text-[11px] text-slate-600">
                           {q.options?.map((opt: string, idx: number) => (
                             <span key={idx} className={`px-2 py-0.5 rounded-md ${idx === q.correct_option_index ? 'bg-emerald-500/20 text-emerald-700 font-bold' : 'bg-slate-200'}`}>
                               {String.fromCharCode(65 + idx)}: {opt}
