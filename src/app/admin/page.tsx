@@ -58,6 +58,14 @@ export default function AdminDashboard() {
   const [staffGrade, setStaffGrade] = useState('1');
   const [staffSection, setStaffSection] = useState('A');
 
+  // Form States - Student Onboarding by Admin
+  const [stuName, setStuName] = useState('');
+  const [stuEmail, setStuEmail] = useState('');
+  const [stuPassword, setStuPassword] = useState('');
+  const [stuSchoolId, setStuSchoolId] = useState('');
+  const [stuGrade, setStuGrade] = useState('1');
+  const [stuSection, setStuSection] = useState('A');
+
   // Form States - Lesson (Complete 9-Section Builder)
   const [lessonGrade, setLessonGrade] = useState('1');
   const [lessonNumber, setLessonNumber] = useState('1');
@@ -109,7 +117,10 @@ export default function AdminDashboard() {
     const { data: sData } = await supabase.from('schools').select('*').order('created_at', { ascending: false });
     if (sData) {
       setSchools(sData);
-      if (sData.length > 0 && !staffSchoolId) setStaffSchoolId(sData[0].id);
+      if (sData.length > 0) {
+        if (!staffSchoolId) setStaffSchoolId(sData[0].id);
+        if (!stuSchoolId) setStuSchoolId(sData[0].id);
+      }
     }
 
     const { data: stData } = await supabase.from('profiles').select('*, schools(name, code)').in('role', ['principal', 'teacher']);
@@ -196,6 +207,44 @@ export default function AdminDashboard() {
       setStaffEmail('');
       setStaffPassword('');
       setStatusMsg(`Registered ${staffRole.toUpperCase()} successfully!`);
+      fetchAllAdminData();
+      setTimeout(() => setStatusMsg(''), 3000);
+    } catch (err: any) {
+      alert(err.message);
+      setStatusMsg('');
+    }
+  };
+
+  const handleCreateStudent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setStatusMsg('Registering student account...');
+
+    try {
+      const res = await fetch('/api/admin/create-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: stuEmail,
+          password: stuPassword,
+          fullName: stuName,
+          role: 'student',
+          schoolId: stuSchoolId,
+          grade: parseInt(stuGrade),
+          section: stuSection,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        alert(data.error || 'Failed to create student account');
+        setStatusMsg('');
+        return;
+      }
+
+      setStuName('');
+      setStuEmail('');
+      setStuPassword('');
+      setStatusMsg(`Student ${stuName} registered successfully!`);
       fetchAllAdminData();
       setTimeout(() => setStatusMsg(''), 3000);
     } catch (err: any) {
@@ -489,7 +538,6 @@ export default function AdminDashboard() {
         setOptC('');
         setOptD('');
         setStatusMsg('Quiz question added!');
-        fetchAllAdminData();
         setTimeout(() => setStatusMsg(''), 3000);
       } else {
         alert(error.message);
@@ -1059,6 +1107,92 @@ export default function AdminDashboard() {
         {/* TAB: STUDENT ROSTER */}
         {activeTab === 'students' && !selectedStudentDetail && (
           <div className="space-y-6">
+            {/* Student Registration Form */}
+            <div className="bg-white border border-slate-200 p-6 rounded-3xl">
+              <h2 className="text-lg font-black mb-4 flex items-center gap-2 text-slate-900">
+                <UserPlus className="w-5 h-5 text-pink-600" /> Register New Student Account (Any School)
+              </h2>
+              <form onSubmit={handleCreateStudent} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1">Student Full Name</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Varshini"
+                    value={stuName}
+                    onChange={(e) => setStuName(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 outline-none focus:border-pink-500 font-medium"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1">Email Address (Username)</label>
+                  <input
+                    type="email"
+                    placeholder="student@school.com"
+                    value={stuEmail}
+                    onChange={(e) => setStuEmail(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 outline-none focus:border-pink-500 font-medium"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1">Password</label>
+                  <input
+                    type="text"
+                    placeholder="Password"
+                    value={stuPassword}
+                    onChange={(e) => setStuPassword(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 outline-none focus:border-pink-500 font-medium"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1">Select School</label>
+                  <select
+                    value={stuSchoolId}
+                    onChange={(e) => setStuSchoolId(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 outline-none focus:border-pink-500 font-medium"
+                    required
+                  >
+                    {schools.map((s) => (
+                      <option key={s.id} value={s.id}>{s.name} ({s.code})</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1">Grade</label>
+                  <select
+                    value={stuGrade}
+                    onChange={(e) => setStuGrade(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 outline-none focus:border-pink-500 font-medium"
+                  >
+                    {[1,2,3,4,5,6,7,8,9,10].map(g => (
+                      <option key={g} value={g}>Grade {g}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1">Section</label>
+                  <select
+                    value={stuSection}
+                    onChange={(e) => setStuSection(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 outline-none focus:border-pink-500 font-medium"
+                  >
+                    {['A','B','C','D'].map(sec => (
+                      <option key={sec} value={sec}>Section {sec}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <button
+                  type="submit"
+                  className="md:col-span-3 bg-pink-600 hover:bg-pink-500 text-white font-black py-4 rounded-xl transition shadow-lg mt-2"
+                >
+                  Create Student Account
+                </button>
+              </form>
+            </div>
+
             <div className="bg-white border border-slate-200 p-4 rounded-3xl flex flex-wrap gap-4 items-center justify-between">
               <div className="flex flex-wrap gap-3 items-center">
                 <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 rounded-xl border border-slate-200 text-sm">
@@ -1482,7 +1616,7 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* TAB: INTERACTIVE ACTIVITIES (WITH ADD & EDIT LIST DISPLAY) */}
+        {/* TAB: INTERACTIVE ACTIVITIES */}
         {activeTab === 'activities' && (
           <div className="space-y-6">
             <div className="bg-white border border-slate-200 p-6 rounded-3xl space-y-6 shadow-sm">
@@ -1676,7 +1810,7 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* TAB: QUIZZES (WITH ADD & EDIT LIST DISPLAY) */}
+        {/* TAB: QUIZZES */}
         {activeTab === 'quizzes' && (
           <div className="space-y-6">
             <div className="bg-white border border-slate-200 p-6 rounded-3xl space-y-4 shadow-sm">
