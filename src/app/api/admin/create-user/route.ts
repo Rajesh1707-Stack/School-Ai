@@ -3,51 +3,62 @@ import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
   try {
-    const { email, password, fullName, role, schoolId, grade, section } = await request.json();
+    const body = await request.json();
+    const { email, password, fullName, role, schoolId, grade, section } = body;
 
-    // Use Service Role to create users without changing the current admin session
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-        },
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !serviceRoleKey) {
+      return NextResponse.json(
+        { error: 'Server configuration error: Missing Supabase URL or Service Role Key in environment variables.' },
+        { status: 500 }
+      );
+    }
+
+    // Initialize Supabase Admin client with Service Role Key
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
       }
-    );
+    });
 
-    // 1. Create Auth User
-    const { data: userData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+    // 1. Create User in Supabase Auth
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
-      user_metadata: { full_name: fullName, role },
+      user_metadata: { full_name: fullName }
     });
 
     if (authError) {
       return NextResponse.json({ error: authError.message }, { status: 400 });
     }
 
-    // 2. Insert into profiles table
-    const { error: profileError } = await supabaseAdmin.from('profiles').insert([
-      {
-        id: userData.user.id,
+    const userId = authData.user.id;
+
+    // 2. Insert/Upsert Profile into Profiles table
+    const { error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .upsert({
+        id: userId,
         email,
         full_name: fullName,
-        role,
-        school_id: schoolId || null,
+        role: role,
+        school_id: schoolId,
         grade: grade ? parseInt(grade) : null,
         section: section || null,
-      },
-    ]);
+        points: 0,
+        current_streak: 1
+      });
 
     if (profileError) {
       return NextResponse.json({ error: profileError.message }, { status: 400 });
     }
 
-    return NextResponse.json({ success: true, user: userData.user });
+    return NextResponse.json({ success: true, userId });
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || 'Server error' }, { status: 500 });
+    return NextResponse.json({ error: err.message || 'Internal Server Error' }, { status: 500 });
   }
 }
