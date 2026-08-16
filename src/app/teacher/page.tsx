@@ -722,7 +722,6 @@ export default function TeacherDashboard() {
         {/* TAB 4: SPEECH EVALUATION LOGS & LIVE CLASSROOM TESTER */}
         {activeTab === 'speech' && !selectedStudentSpeech && (
           <div className="space-y-6">
-            {/* Live Class Speech Studio */}
             <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl space-y-4 shadow-xl">
               <div className="flex flex-wrap justify-between items-center gap-3">
                 <div>
@@ -764,7 +763,6 @@ export default function TeacherDashboard() {
               )}
             </div>
 
-            {/* Submitted History Log Table */}
             <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-lg">
               <div className="p-4 border-b border-slate-800 font-bold text-sm text-slate-300">
                 Student Submissions from Grade {selectedGrade} - Section {selectedSection} ({speechLogs.length})

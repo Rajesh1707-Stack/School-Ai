@@ -1,7 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Printer, Award, Zap, Flame, CheckCircle2, BookOpen } from 'lucide-react';
+import { createClient } from '@/lib/supabase';
 
 interface StudentReportModalProps {
   profile: any;
@@ -16,6 +17,27 @@ export default function StudentReportModal({
   completedLessonsCount,
   onClose,
 }: StudentReportModalProps) {
+  const [lessonCompletions, setLessonCompletions] = useState<any[]>([]);
+  const supabase = createClient();
+
+  useEffect(() => {
+    if (profile?.id) {
+      fetchStudentCompletions(profile.id);
+    }
+  }, [profile]);
+
+  const fetchStudentCompletions = async (studentId: string) => {
+    const { data } = await supabase
+      .from('lesson_completions')
+      .select('*, lessons(title, lesson_number)')
+      .eq('student_id', studentId)
+      .order('completed_at', { ascending: false });
+
+    if (data) {
+      setLessonCompletions(data);
+    }
+  };
+
   const currentPoints = profile?.points || 0;
   const currentLevel = Math.floor(currentPoints / 250) + 1;
 
@@ -102,10 +124,33 @@ export default function StudentReportModal({
           </div>
         </div>
 
+        {/* Completed Lessons Breakdown Section */}
+        <div className="space-y-3">
+          <h3 className="text-sm font-bold text-white print:text-slate-900 uppercase tracking-wider">Lesson Completion Scores & Ranks</h3>
+          <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+            {lessonCompletions.length === 0 ? (
+              <p className="text-xs text-slate-500 italic p-4 text-center">No completed lessons recorded yet.</p>
+            ) : (
+              lessonCompletions.map((comp, idx) => (
+                <div key={idx} className="p-3 bg-slate-950 print:bg-slate-50 rounded-xl border border-slate-800 print:border-slate-300 flex justify-between items-center text-xs">
+                  <div>
+                    <span className="font-bold text-white print:text-slate-900 block">Lesson {comp.lessons?.lesson_number}: {comp.lessons?.title}</span>
+                    <span className="text-slate-400 text-[11px]">Activity: {comp.activity_score}% | Quiz: {comp.quiz_score}% | Speech: {comp.speech_score}%</span>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <span className="font-black text-emerald-400 print:text-emerald-700 text-sm block">{comp.final_percentage}% Final</span>
+                    <span className="text-[10px] text-amber-400">+{comp.earned_xp} XP</span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
         {/* Speech Submissions Breakdown */}
         <div className="space-y-3">
-          <h3 className="text-sm font-bold text-white print:text-slate-900 uppercase tracking-wider">Recent Speech Evaluations History</h3>
-          <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+          <h3 className="text-sm font-bold text-white print:text-slate-900 uppercase tracking-wider">Speech Evaluations History</h3>
+          <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
             {speechHistory.length === 0 ? (
               <p className="text-xs text-slate-500 italic p-4 text-center">No speech recordings submitted yet.</p>
             ) : (
@@ -126,7 +171,7 @@ export default function StudentReportModal({
         </div>
 
         {/* Footer Signature */}
-        <div className="pt-6 border-t border-slate-800 print:border-slate-300 flex justify-between items-end text-xs text-slate-500">
+        <div className="pt-4 border-t border-slate-800 print:border-slate-300 flex justify-between items-end text-xs text-slate-500">
           <div>
             <p>Certified by Edicon English Excel Program</p>
             <p>Generated on {new Date().toLocaleDateString()}</p>

@@ -6,13 +6,13 @@ import { useRouter } from 'next/navigation';
 import { 
   School, Users, BookOpen, Clock, LogOut, CheckCircle2, 
   ChevronRight, Award, Trophy, Mic, UserPlus, Filter, 
-  Search, ArrowLeft, RefreshCw, Star, ShieldCheck, Flame, Zap
+  Search, ArrowLeft, RefreshCw, Star, ShieldCheck, Flame, Zap, Calendar, Download
 } from 'lucide-react';
 import ClassLeaderboard from '@/components/dashboard/ClassLeaderboard';
 
 export default function PrincipalDashboard() {
   const [profile, setProfile] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'teachers' | 'students' | 'leaderboard' | 'attendance' | 'speech' | 'add_teacher'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'teachers' | 'students' | 'leaderboard' | 'attendance' | 'add_teacher'>('overview');
 
   // Repositories (School-Isolated)
   const [teachers, setTeachers] = useState<any[]>([]);
@@ -26,9 +26,13 @@ export default function PrincipalDashboard() {
   const [sectionFilter, setSectionFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Teacher Attendance Month & Year Filter States
+  const [attendanceMonth, setAttendanceMonth] = useState((new Date().getMonth() + 1).toString());
+  const [attendanceYear, setAttendanceYear] = useState(new Date().getFullYear().toString());
+
   // Drill-Down States
   const [selectedStudentDetail, setSelectedStudentDetail] = useState<any | null>(null);
-  const [selectedSpeechDetail, setSelectedSpeechDetail] = useState<any | null>(null);
+  const [selectedStudentCompletions, setSelectedStudentCompletions] = useState<any[]>([]);
 
   // New Teacher Onboarding Form State
   const [teacherName, setTeacherName] = useState('');
@@ -82,15 +86,15 @@ export default function PrincipalDashboard() {
         .order('points', { ascending: false });
       if (sData) setStudents(sData);
 
-      // 4. Fetch Teacher Attendance
+      // 4. Fetch Teacher Attendance via profiles join
       const { data: attData } = await supabase
         .from('teacher_attendance')
-        .select('*, profiles(full_name, grade, section)')
-        .eq('school_id', prof.school_id)
+        .select('*, profiles!inner(full_name, grade, section, school_id)')
+        .eq('profiles.school_id', prof.school_id)
         .order('date', { ascending: false });
       if (attData) setTeacherAttendance(attData);
 
-      // 5. Fetch Speech Logs
+      // 5. Fetch Speech Logs (used in student drill-down view)
       const { data: spData } = await supabase
         .from('speech_submissions')
         .select('*, profiles!inner(full_name, grade, section, school_id), lessons(title, speaking_prompt)')
@@ -101,12 +105,22 @@ export default function PrincipalDashboard() {
       // 6. Fetch Lesson Completions
       const { data: compData } = await supabase
         .from('lesson_completions')
-        .select('*, profiles(full_name), lessons(title, lesson_number)')
-        .eq('school_id', prof.school_id)
+        .select('*, profiles!inner(full_name, school_id), lessons(title, lesson_number)')
+        .eq('profiles.school_id', prof.school_id)
         .order('completed_at', { ascending: false });
       if (compData) setLessonCompletions(compData);
     }
     setLoading(false);
+  };
+
+  const handleSelectStudent = async (student: any) => {
+    setSelectedStudentDetail(student);
+    const { data } = await supabase
+      .from('lesson_completions')
+      .select('*, lessons(title, lesson_number)')
+      .eq('student_id', student.id)
+      .order('completed_at', { ascending: false });
+    if (data) setSelectedStudentCompletions(data);
   };
 
   const handleCreateTeacher = async (e: React.FormEvent) => {
@@ -154,13 +168,76 @@ export default function PrincipalDashboard() {
     router.push('/login');
   };
 
-  // Filtered Students List
   const filteredStudents = students.filter(s => {
     const matchGrade = gradeFilter === 'All' || s.grade?.toString() === gradeFilter;
     const matchSection = sectionFilter === 'All' || s.section === sectionFilter;
     const matchSearch = s.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) || s.email?.toLowerCase().includes(searchQuery.toLowerCase());
     return matchGrade && matchSection && matchSearch;
   });
+
+  const filteredTeacherAttendance = teacherAttendance.filter(a => {
+    if (!a.date) return false;
+    const [year, month] = a.date.split('-');
+    const matchMonth = attendanceMonth === 'All' || parseInt(month).toString() === attendanceMonth;
+    const matchYear = attendanceYear === 'All' || year === attendanceYear;
+    return matchMonth && matchYear;
+  });
+
+  // Helper function to calculate duration between clock_in and clock_out strings or timestamps
+  const calculateDuration = (clockIn: string, clockOut: string) => {
+    if (!clockIn || !clockOut) return 'In Progress';
+    
+    let start = new Date(clockIn).getTime();
+    let end = new Date(clockOut).getTime();
+
+    if (isNaN(start) || isNaN(end)) {
+      const today = new Date().toISOString().split('T')[0];
+      start = new Date(`${today} ${clockIn}`).getTime();
+      end = new Date(`${today} ${clockOut}`).getTime();
+    }
+
+    if (isNaN(start) || isNaN(end)) return 'Calc Error';
+
+    const diffMs = end - start;
+    if (diffMs < 0) return '0m';
+
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    const hours = Math.floor(diffMins / 60);
+    const mins = diffMins % 60;
+    const secs = Math.floor((diffMs % (1000 * 60)) / 1000);
+
+    if (hours === 0 && mins === 0) return `${secs}s`;
+    if (hours === 0) return `${mins}m`;
+    return `${hours}h ${mins}m`;
+  };
+
+  // Export Attendance as Excel / CSV
+  const exportAttendanceToExcel = () => {
+    if (filteredTeacherAttendance.length === 0) {
+      alert('No attendance records available to export.');
+      return;
+    }
+
+    const headers = ['Teacher Name', 'Assigned Class', 'Date', 'Clock In', 'Clock Out', 'Total Hours', 'Status'];
+    const rows = filteredTeacherAttendance.map(a => [
+      `"${a.profiles?.full_name || 'N/A'}"`,
+      `"Grade ${a.profiles?.grade}-${a.profiles?.section}"`,
+      `"${a.date}"`,
+      `"${a.clock_in ? new Date(a.clock_in).toLocaleTimeString() : '--'}"`,
+      `"${a.clock_out ? new Date(a.clock_out).toLocaleTimeString() : 'In Progress'}"`,
+      `"${calculateDuration(a.clock_in, a.clock_out)}"`,
+      `"${a.status}"`
+    ]);
+
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `Teacher_Attendance_${attendanceMonth}_${attendanceYear}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   if (loading) {
     return (
@@ -221,7 +298,6 @@ export default function PrincipalDashboard() {
             { id: 'teachers', label: `👨‍🏫 Teachers (${teachers.length})`, icon: Users },
             { id: 'students', label: `🎓 Students (${students.length})`, icon: Award },
             { id: 'attendance', label: `📅 Teacher Attendance (${teacherAttendance.length})`, icon: Clock },
-            { id: 'speech', label: `🎤 Speech Audits (${speechLogs.length})`, icon: Mic },
             { id: 'add_teacher', label: '➕ Onboard Teacher', icon: UserPlus },
           ].map(tab => (
             <button
@@ -229,7 +305,6 @@ export default function PrincipalDashboard() {
               onClick={() => {
                 setActiveTab(tab.id as any);
                 setSelectedStudentDetail(null);
-                setSelectedSpeechDetail(null);
               }}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition ${
                 activeTab === tab.id ? 'bg-amber-600 text-white shadow-lg shadow-amber-600/30' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
@@ -243,7 +318,7 @@ export default function PrincipalDashboard() {
         {/* TAB 1: OVERVIEW */}
         {activeTab === 'overview' && (
           <div className="space-y-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl relative overflow-hidden">
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Faculty Staff</span>
                 <div className="text-4xl font-black text-white mt-1">{teachers.length}</div>
@@ -260,12 +335,6 @@ export default function PrincipalDashboard() {
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Completed Lessons</span>
                 <div className="text-4xl font-black text-white mt-1">{lessonCompletions.length}</div>
                 <p className="text-xs text-emerald-400 font-bold mt-2">Submissions & Re-Attempts</p>
-              </div>
-
-              <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl relative overflow-hidden">
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Speech Submissions</span>
-                <div className="text-4xl font-black text-white mt-1">{speechLogs.length}</div>
-                <p className="text-xs text-amber-400 font-bold mt-2">AI Voice Evaluations</p>
               </div>
             </div>
 
@@ -365,7 +434,7 @@ export default function PrincipalDashboard() {
                 {teachers.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="p-6 text-center text-slate-500 font-medium">
-                      No teachers onboarded yet. Click "Onboard Teacher" to add staff.
+                      No teachers onboarded yet. Click "Add Teacher" to add staff.
                     </td>
                   </tr>
                 ) : (
@@ -451,7 +520,7 @@ export default function PrincipalDashboard() {
                       <td className="p-4 text-rose-400 font-bold">{st.current_streak || 1} 🔥</td>
                       <td className="p-4">
                         <button
-                          onClick={() => setSelectedStudentDetail(st)}
+                          onClick={() => handleSelectStudent(st)}
                           className="px-3 py-1.5 bg-amber-600/20 hover:bg-amber-600 text-amber-300 hover:text-white rounded-lg text-xs font-bold transition"
                         >
                           View Report
@@ -492,6 +561,35 @@ export default function PrincipalDashboard() {
               </div>
             </div>
 
+            {/* Completed Lessons & Activity Scores Breakdown */}
+            <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl space-y-4">
+              <h3 className="font-bold text-lg text-white flex items-center gap-2">
+                <BookOpen className="w-5 h-5 text-emerald-400" /> Completed Lessons & Assessment Scores
+              </h3>
+              <div className="space-y-3">
+                {selectedStudentCompletions.length === 0 ? (
+                  <p className="text-slate-500 text-sm">No completed lessons recorded yet for this student.</p>
+                ) : (
+                  selectedStudentCompletions.map((comp, idx) => (
+                    <div key={idx} className="p-4 bg-slate-950 rounded-2xl border border-slate-800 flex justify-between items-center text-xs">
+                      <div>
+                        <span className="font-bold text-white text-sm block">Lesson {comp.lessons?.lesson_number}: {comp.lessons?.title}</span>
+                        <span className="text-slate-400 mt-1 block">
+                          Activity: <strong className="text-white">{comp.activity_score}%</strong> | 
+                          Quiz: <strong className="text-white">{comp.quiz_score}%</strong> | 
+                          Speech: <strong className="text-white">{comp.speech_score}%</strong>
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-sm font-black text-emerald-400 block">{comp.final_percentage}% Final</span>
+                        <span className="text-xs text-amber-400 font-bold">+{comp.earned_xp} XP</span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
             {/* Speaking submissions by this student */}
             <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl space-y-4">
               <h3 className="font-bold text-lg text-white flex items-center gap-2">
@@ -511,7 +609,6 @@ export default function PrincipalDashboard() {
                       <div className="flex gap-4 text-xs font-bold text-slate-400 pt-1 border-t border-slate-800">
                         <span>Pronunciation: <strong className="text-white">{log.pronunciation_score}%</strong></span>
                         <span>Fluency: <strong className="text-white">{log.fluency_score}%</strong></span>
-                        <span>Grammar: <strong className="text-white">{log.grammar_score || 85}%</strong></span>
                         <span>Vocabulary: <strong className="text-white">{log.vocabulary_score}%</strong></span>
                       </div>
                     </div>
@@ -522,99 +619,108 @@ export default function PrincipalDashboard() {
           </div>
         )}
 
-        {/* TAB 5: TEACHER ATTENDANCE */}
+        {/* TAB 5: TEACHER ATTENDANCE (WITH MONTH & YEAR FILTERS + EXCEL EXPORT) */}
         {activeTab === 'attendance' && (
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-lg">
-            <div className="p-5 border-b border-slate-800 font-black text-base text-white">
-              Faculty Daily Attendance Logs ({teacherAttendance.length})
+          <div className="space-y-6">
+            <div className="bg-slate-900 border border-slate-800 p-4 rounded-3xl flex flex-wrap gap-4 items-center justify-between">
+              <div className="flex flex-wrap gap-3 items-center">
+                <span className="text-xs font-bold text-slate-400 uppercase flex items-center gap-1.5">
+                  <Calendar className="w-4 h-4 text-amber-400" /> Filter Attendance:
+                </span>
+
+                <select
+                  value={attendanceMonth}
+                  onChange={(e) => setAttendanceMonth(e.target.value)}
+                  className="px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs font-bold text-white outline-none"
+                >
+                  <option value="All">All Months</option>
+                  <option value="1">January</option>
+                  <option value="2">February</option>
+                  <option value="3">March</option>
+                  <option value="4">April</option>
+                  <option value="5">May</option>
+                  <option value="6">June</option>
+                  <option value="7">July</option>
+                  <option value="8">August</option>
+                  <option value="9">September</option>
+                  <option value="10">October</option>
+                  <option value="11">November</option>
+                  <option value="12">December</option>
+                </select>
+
+                <select
+                  value={attendanceYear}
+                  onChange={(e) => setAttendanceYear(e.target.value)}
+                  className="px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs font-bold text-white outline-none"
+                >
+                  <option value="All">All Years</option>
+                  <option value="2025">2025</option>
+                  <option value="2026">2026</option>
+                  <option value="2027">2027</option>
+                </select>
+              </div>
+
+              <div className="flex items-center gap-4">
+                <span className="text-xs font-bold text-slate-400">
+                  Showing {filteredTeacherAttendance.length} Records
+                </span>
+
+                <button
+                  onClick={exportAttendanceToExcel}
+                  className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-xl text-xs uppercase tracking-wider transition shadow-md"
+                >
+                  <Download className="w-4 h-4" /> Export as Excel (CSV)
+                </button>
+              </div>
             </div>
-            <table className="w-full text-left text-sm">
-              <thead className="bg-slate-950 text-slate-400 font-bold text-xs uppercase">
-                <tr>
-                  <th className="p-4">Teacher</th>
-                  <th className="p-4">Assigned Class</th>
-                  <th className="p-4">Date</th>
-                  <th className="p-4">Clock In</th>
-                  <th className="p-4">Clock Out</th>
-                  <th className="p-4">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800">
-                {teacherAttendance.length === 0 ? (
+
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-lg">
+              <div className="p-5 border-b border-slate-800 font-black text-base text-white">
+                Faculty Daily Attendance Logs ({filteredTeacherAttendance.length})
+              </div>
+              <table className="w-full text-left text-sm">
+                <thead className="bg-slate-950 text-slate-400 font-bold text-xs uppercase">
                   <tr>
-                    <td colSpan={6} className="p-6 text-center text-slate-500 font-medium">
-                      No clock-in records found for this school.
-                    </td>
+                    <th className="p-4">Teacher</th>
+                    <th className="p-4">Assigned Class</th>
+                    <th className="p-4">Date</th>
+                    <th className="p-4">Clock In</th>
+                    <th className="p-4">Clock Out</th>
+                    <th className="p-4">Total Hours</th>
+                    <th className="p-4">Status</th>
                   </tr>
-                ) : (
-                  teacherAttendance.map(a => (
-                    <tr key={a.id} className="hover:bg-slate-800/40">
-                      <td className="p-4 font-bold text-white">{a.profiles?.full_name}</td>
-                      <td className="p-4 text-purple-400 font-bold">Grade {a.profiles?.grade}-{a.profiles?.section}</td>
-                      <td className="p-4 text-slate-300">{a.date}</td>
-                      <td className="p-4 text-emerald-400 font-mono">{a.clock_in ? new Date(a.clock_in).toLocaleTimeString() : '--'}</td>
-                      <td className="p-4 text-rose-400 font-mono">{a.clock_out ? new Date(a.clock_out).toLocaleTimeString() : 'In Progress'}</td>
-                      <td className="p-4">
-                        <span className="px-2.5 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full text-xs font-bold capitalize">
-                          {a.status}
-                        </span>
+                </thead>
+                <tbody className="divide-y divide-slate-800">
+                  {filteredTeacherAttendance.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="p-6 text-center text-slate-500 font-medium">
+                        No clock-in records found for the selected month/year filter.
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : (
+                    filteredTeacherAttendance.map(a => (
+                      <tr key={a.id} className="hover:bg-slate-800/40">
+                        <td className="p-4 font-bold text-white">{a.profiles?.full_name}</td>
+                        <td className="p-4 text-purple-400 font-bold">Grade {a.profiles?.grade}-{a.profiles?.section}</td>
+                        <td className="p-4 text-slate-300">{a.date}</td>
+                        <td className="p-4 text-emerald-400 font-mono">{a.clock_in ? new Date(a.clock_in).toLocaleTimeString() : '--'}</td>
+                        <td className="p-4 text-rose-400 font-mono">{a.clock_out ? new Date(a.clock_out).toLocaleTimeString() : 'In Progress'}</td>
+                        <td className="p-4 text-amber-400 font-mono font-bold">{calculateDuration(a.clock_in, a.clock_out)}</td>
+                        <td className="p-4">
+                          <span className="px-2.5 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full text-xs font-bold capitalize">
+                            {a.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
-        {/* TAB 6: SPEECH AUDITS */}
-        {activeTab === 'speech' && (
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-lg">
-            <div className="p-5 border-b border-slate-800 font-black text-base text-white">
-              AI Voice Evaluations Audit ({speechLogs.length})
-            </div>
-            <table className="w-full text-left text-sm">
-              <thead className="bg-slate-950 text-slate-400 font-bold text-xs uppercase">
-                <tr>
-                  <th className="p-4">Student</th>
-                  <th className="p-4">Grade & Section</th>
-                  <th className="p-4">Lesson</th>
-                  <th className="p-4">Overall Score</th>
-                  <th className="p-4">Pronunciation</th>
-                  <th className="p-4">Fluency</th>
-                  <th className="p-4">Transcript Preview</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800">
-                {speechLogs.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="p-6 text-center text-slate-500 font-medium">
-                      No speech evaluations recorded yet.
-                    </td>
-                  </tr>
-                ) : (
-                  speechLogs.map(log => (
-                    <tr key={log.id} className="hover:bg-slate-800/40">
-                      <td className="p-4 font-bold text-white">{log.profiles?.full_name}</td>
-                      <td className="p-4 text-purple-400 font-bold">Grade {log.profiles?.grade}-{log.profiles?.section}</td>
-                      <td className="p-4 text-slate-300">{log.lessons?.title}</td>
-                      <td className="p-4">
-                        <span className="px-2.5 py-1 bg-emerald-500/20 text-emerald-300 font-black rounded-lg text-xs">
-                          {log.overall_score}%
-                        </span>
-                      </td>
-                      <td className="p-4 text-indigo-400 font-bold">{log.pronunciation_score}%</td>
-                      <td className="p-4 text-amber-400 font-bold">{log.fluency_score}%</td>
-                      <td className="p-4 text-slate-400 italic text-xs max-w-xs truncate">"{log.transcribed_text}"</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {/* TAB 7: ONBOARD TEACHER */}
+        {/* TAB 6: ONBOARD TEACHER */}
         {activeTab === 'add_teacher' && (
           <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-xl mx-auto space-y-4 shadow-xl">
             <div className="text-center space-y-1 mb-2">
