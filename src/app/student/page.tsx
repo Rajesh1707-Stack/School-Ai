@@ -7,7 +7,7 @@ import {
   Sparkles, Award, Flame, BookOpen, Mic, CheckCircle2, 
   ArrowRight, LogOut, Volume2, Star, Play, Check, X,
   Trophy, Compass, ArrowLeft, BarChart2, Zap, Lock,
-  ChevronRight, FileText
+  ChevronRight, FileText, AlertTriangle, Users, ImageIcon
 } from 'lucide-react';
 import SpeechAnalyzer from '@/components/speech/SpeechAnalyzer';
 import TypingActivity from '@/components/activities/TypingActivity';
@@ -29,22 +29,21 @@ export default function StudentDashboard() {
 
   // Navigation Tabs
   const [activeTab, setActiveTab] = useState<'lessons' | 'leaderboard' | 'progress' | 'badges'>('lessons');
-
-  // Direct Practice Mode for Speech Tab
   const [selectedPracticeLesson, setSelectedPracticeLesson] = useState<any | null>(null);
 
   // Active Lesson Step-by-Step Flow
   const [activeLesson, setActiveLesson] = useState<any | null>(null);
   const [lessonStep, setLessonStep] = useState<
-    'objectives' | 'vocab' | 'sentences' | 'repeat' | 'word_builder' | 
-    'activities' | 'quiz' | 'speech' | 'challenge' | 'completed'
+    'objectives' | 'vocab' | 'sentences' | 'conversation' | 'repeat' | 
+    'word_builder' | 'activities' | 'quiz' | 'speech' | 'challenge' | 'completed'
   >('objectives');
 
-  // Performance Tracking per Step
-  const [activityScore, setActivityScore] = useState(100);
-  const [quizScore, setQuizScore] = useState(0);
+  // Deduction & Score Tracking States
+  const [wbEarnedXP, setWbEarnedXP] = useState(0);
+  const [typingEarnedXP, setTypingEarnedXP] = useState(0);
+  const [quizCorrectCount, setQuizCorrectCount] = useState(0);
   const [speechScore, setSpeechScore] = useState(0);
-  const [totalLessonEarnedXP, setTotalLessonEarnedXP] = useState(0);
+  const [totalMistakes, setTotalMistakes] = useState(0);
 
   // Sub-Indices
   const [currentActIndex, setCurrentActIndex] = useState(0);
@@ -58,6 +57,38 @@ export default function StudentDashboard() {
   useEffect(() => {
     fetchStudentData();
   }, []);
+
+  // Realtime Live Subscription
+  useEffect(() => {
+    if (!profile?.grade) return;
+
+    const channel = supabase
+      .channel('student-dashboard-sync')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'lessons' },
+        () => fetchStudentData()
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'activities' },
+        () => {
+          if (activeLesson) loadLessonActivities(activeLesson.id);
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'quizzes' },
+        () => {
+          if (activeLesson) loadLessonActivities(activeLesson.id);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [profile?.grade, activeLesson?.id]);
 
   const fetchStudentData = async () => {
     setLoading(true);
@@ -76,7 +107,7 @@ export default function StudentDashboard() {
     if (profileData) {
       setProfile(profileData);
 
-      // 1. Fetch Lessons for Enrolled Grade
+      // 1. Fetch Grade Lessons
       const { data: lessonsData } = await supabase
         .from('lessons')
         .select('*')
@@ -88,7 +119,7 @@ export default function StudentDashboard() {
         if (lessonsData.length > 0) setSelectedPracticeLesson(lessonsData[0]);
       }
 
-      // 2. Fetch Completed Lessons Records
+      // 2. Fetch Completion Records
       const { data: compData } = await supabase
         .from('lesson_completions')
         .select('*')
@@ -100,20 +131,20 @@ export default function StudentDashboard() {
         setCompletedLessonsMap(cmap);
       }
 
-      // 3. Fetch Classmates for Automated Ranking Leaderboard
+      // 3. Fetch Classmates for Leaderboard
       const { data: classData } = await supabase
         .from('profiles')
         .select('*, schools(name)')
         .eq('school_id', profileData.school_id)
         .eq('grade', profileData.grade)
         .eq('section', profileData.section)
-        .eq('role', 'student');
+        .eq('role', 'student')
+        .order('points', { ascending: false });
 
       if (classData) setClassmates(classData);
 
-      // 4. Fetch Badges & Check Unlocks
+      // 4. Badges
       await supabase.rpc('check_and_award_badges', { p_student_id: user.id });
-
       const { data: allBadges } = await supabase.from('badges').select('*');
       const { data: unlockedData } = await supabase
         .from('student_badges')
@@ -121,15 +152,11 @@ export default function StudentDashboard() {
         .eq('student_id', user.id);
 
       const unlockedSet = new Set(unlockedData?.map(ub => ub.badge_id) || []);
-
       if (allBadges) {
-        setBadges(allBadges.map(b => ({
-          ...b,
-          isUnlocked: unlockedSet.has(b.id)
-        })));
+        setBadges(allBadges.map(b => ({ ...b, isUnlocked: unlockedSet.has(b.id) })));
       }
 
-      // 5. Fetch Speech Submissions
+      // 5. Speech Logs
       const { data: speechData } = await supabase
         .from('speech_submissions')
         .select('*, lessons(title)')
@@ -139,6 +166,14 @@ export default function StudentDashboard() {
       if (speechData) setSpeechHistory(speechData);
     }
     setLoading(false);
+  };
+
+  const loadLessonActivities = async (lessonId: string) => {
+    const { data: actData } = await supabase.from('activities').select('*').eq('lesson_id', lessonId);
+    if (actData) setActivities(actData);
+
+    const { data: qData } = await supabase.from('quizzes').select('*').eq('lesson_id', lessonId);
+    if (qData) setQuizzes(qData);
   };
 
   const speakText = (text: string) => {
@@ -161,24 +196,61 @@ export default function StudentDashboard() {
     setLessonStep('objectives');
     setCurrentActIndex(0);
     setCurrentQuizIndex(0);
-    setQuizScore(0);
-    setActivityScore(100);
+    setWbEarnedXP(0);
+    setTypingEarnedXP(0);
+    setQuizCorrectCount(0);
     setSpeechScore(0);
-    setTotalLessonEarnedXP(0);
+    setTotalMistakes(0);
     setSelectedQuizOption(null);
 
-    const { data: actData } = await supabase.from('activities').select('*').eq('lesson_id', lesson.id);
-    if (actData) setActivities(actData);
-
-    const { data: qData } = await supabase.from('quizzes').select('*').eq('lesson_id', lesson.id);
-    if (qData) setQuizzes(qData);
+    await loadLessonActivities(lesson.id);
   };
 
+  // 1. Word Builder Completion with Deduction
+  const handleWordBuilderComplete = (scorePercentage: number) => {
+    const earned = Math.round((scorePercentage / 100) * 20);
+    const mistakesMade = Math.round(((100 - scorePercentage) / 100) * 5);
+    setWbEarnedXP(earned);
+    setTotalMistakes(prev => prev + mistakesMade);
+
+    const typingList = activities.filter(a => a.type === 'fill_in_blank');
+    setLessonStep(typingList.length > 0 ? 'activities' : quizzes.length > 0 ? 'quiz' : 'speech');
+  };
+
+  // 2. Typing Challenge with Attempt-Based Deductions
+  const handleTypingSuccess = (attemptsTaken: number) => {
+    const earned = attemptsTaken === 1 ? 4 : attemptsTaken === 2 ? 3 : 2;
+    const mistakes = attemptsTaken - 1;
+
+    setTypingEarnedXP(prev => prev + earned);
+    setTotalMistakes(prev => prev + mistakes);
+
+    const typingList = activities.filter(a => a.type === 'fill_in_blank');
+    if (currentActIndex + 1 < typingList.length) {
+      setCurrentActIndex(prev => prev + 1);
+    } else {
+      setLessonStep(quizzes.length > 0 ? 'quiz' : 'speech');
+    }
+  };
+
+  const handleTypingFail = () => {
+    setTotalMistakes(prev => prev + 3);
+    const typingList = activities.filter(a => a.type === 'fill_in_blank');
+    if (currentActIndex + 1 < typingList.length) {
+      setCurrentActIndex(prev => prev + 1);
+    } else {
+      setLessonStep(quizzes.length > 0 ? 'quiz' : 'speech');
+    }
+  };
+
+  // 3. Multiple Choice Quiz
   const handleQuizAnswer = (optionIndex: number) => {
     setSelectedQuizOption(optionIndex);
     const currentQuestion = quizzes[currentQuizIndex];
     if (optionIndex === currentQuestion.correct_option_index) {
-      setQuizScore(prev => prev + 1);
+      setQuizCorrectCount(prev => prev + 1);
+    } else {
+      setTotalMistakes(prev => prev + 1);
     }
   };
 
@@ -187,25 +259,33 @@ export default function StudentDashboard() {
       setCurrentQuizIndex(prev => prev + 1);
       setSelectedQuizOption(null);
     } else {
-      setTotalLessonEarnedXP(prev => prev + (quizScore * 10));
       setLessonStep('speech');
     }
   };
 
+  // 4. Official AI Speech & Final Lesson Record
   const handleLessonSpeechComplete = async (evaluation: any, isChallenge: boolean = false) => {
     if (!profile || !activeLesson) return;
 
     setSpeechScore(evaluation.overallScore);
-    const earnedXP = Math.round(35 * (evaluation.overallScore / 100));
-    const newTotalXP = totalLessonEarnedXP + earnedXP;
+
+    const speechEarnedXP = Math.round(40 * (evaluation.overallScore / 100));
+    const quizEarnedXP = quizCorrectCount * 4;
+    const finalEarnedXP = wbEarnedXP + typingEarnedXP + quizEarnedXP + speechEarnedXP;
+
+    const wbPercentage = (wbEarnedXP / 20) * 100;
+    const typingPercentage = (typingEarnedXP / 20) * 100;
+    const quizPercentage = (quizCorrectCount / (quizzes.length || 1)) * 100;
 
     await supabase.rpc('record_lesson_submission', {
       p_student_id: profile.id,
       p_lesson_id: activeLesson.id,
-      p_activity_score: activityScore,
-      p_quiz_score: quizzes.length > 0 ? Math.round((quizScore / quizzes.length) * 100) : 100,
+      p_word_builder_score: wbPercentage,
+      p_typing_score: typingPercentage,
+      p_quiz_score: quizPercentage,
       p_speech_score: evaluation.overallScore,
-      p_earned_xp: newTotalXP,
+      p_total_mistakes: totalMistakes,
+      p_earned_xp: finalEarnedXP,
     });
 
     await supabase.from('speech_submissions').insert([{
@@ -270,15 +350,46 @@ export default function StudentDashboard() {
   const currentLevel = Math.floor(currentPoints / 250) + 1;
   const nextLevelProgress = ((currentPoints % 250) / 250) * 100;
 
-  const fiveWordsList = activeLesson?.vocabulary?.length >= 5 
-    ? activeLesson.vocabulary 
-    : [
-        { word: 'HELLO', meaning: 'A friendly and polite greeting' },
-        { word: 'MORNING', meaning: 'The early part of the day before noon' },
-        { word: 'AFTERNOON', meaning: 'The time from noon until evening' },
-        { word: 'EVENING', meaning: 'The end of the day before night' },
-        { word: 'GOODBYE', meaning: 'Said when parting or leaving someone' }
-      ];
+  const safeVocabList = Array.isArray(activeLesson?.vocabulary)
+    ? activeLesson.vocabulary.map((v: any) => ({
+        word: (v.word || (typeof v === 'string' ? v.split(':')[0] : 'WORD')).toUpperCase(),
+        meaning: v.meaning || (typeof v === 'string' ? v.split(':')[1] || '' : '')
+      }))
+    : [];
+
+  const safeSentencesList = Array.isArray(activeLesson?.useful_sentences)
+    ? activeLesson.useful_sentences.map((s: any) => s.sentence || s)
+    : [];
+
+  const safeDialogueList: { speaker: string; line: string }[] = (() => {
+    if (!activeLesson?.conversation_dialogue) return [];
+    if (Array.isArray(activeLesson.conversation_dialogue)) {
+      return activeLesson.conversation_dialogue.map((item: any) => ({
+        speaker: item.speaker || (typeof item === 'string' ? item.split(':')[0] : 'Speaker'),
+        line: item.line || (typeof item === 'string' ? item.split(':')[1] || item : JSON.stringify(item))
+      }));
+    }
+    if (typeof activeLesson.conversation_dialogue === 'string') {
+      try {
+        const parsed = JSON.parse(activeLesson.conversation_dialogue);
+        if (Array.isArray(parsed)) {
+          return parsed.map((item: any) => ({
+            speaker: item.speaker || 'Speaker',
+            line: item.line || ''
+          }));
+        }
+      } catch {
+        return activeLesson.conversation_dialogue.split('\n').filter(Boolean).map((line: string) => {
+          const parts = line.split(':');
+          return { speaker: parts[0]?.trim() || 'Speaker', line: parts.slice(1).join(':').trim() || line };
+        });
+      }
+    }
+    return [];
+  })();
+
+  const wordBuilderActivities = activities.filter(a => a.type === 'word_builder');
+  const typingActivities = activities.filter(a => a.type === 'fill_in_blank');
 
   const studioAttemptsForSelected = speechHistory.filter(
     s => s.lesson_id === selectedPracticeLesson?.id
@@ -370,7 +481,7 @@ export default function StudentDashboard() {
           </div>
         )}
 
-        {/* VIEW 1: CURRICULUM WITH COMPLETED ONCE STATUS */}
+        {/* VIEW 1: LESSON CARDS */}
         {!activeLesson && activeTab === 'lessons' && (
           <div className="space-y-6">
             <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl space-y-3 shadow-lg">
@@ -396,9 +507,7 @@ export default function StudentDashboard() {
                     key={lesson.id}
                     onClick={() => startLesson(lesson)}
                     className={`border p-6 rounded-3xl cursor-pointer transition transform hover:-translate-y-1 shadow-lg flex flex-col justify-between space-y-4 ${
-                      isCompleted 
-                        ? 'bg-slate-900/60 border-emerald-500/30' 
-                        : 'bg-slate-900 border-slate-800 hover:border-pink-500/50'
+                      isCompleted ? 'bg-slate-900/60 border-emerald-500/30' : 'bg-slate-900 border-slate-800 hover:border-pink-500/50'
                     }`}
                   >
                     <div className="space-y-2">
@@ -441,18 +550,18 @@ export default function StudentDashboard() {
           </div>
         )}
 
-        {/* VIEW 2: CLASS TOPPERS LEADERBOARD */}
+        {/* VIEW 2: CLASS LEADERBOARD (RANKED BY POINTS & LOW MISTAKES) */}
         {!activeLesson && activeTab === 'leaderboard' && (
           <div className="space-y-6">
             <ClassLeaderboard
               students={classmates}
               title={`🏆 Grade ${profile?.grade}-${profile?.section} Class Toppers`}
-              subtitle={`Automatic rank calculation based on completed lesson accuracy & XP for ${profile?.schools?.name}`}
+              subtitle={`Automatic rank calculation based on precision scoring and lowest mistake rates for ${profile?.schools?.name}`}
             />
           </div>
         )}
 
-        {/* VIEW 3: LIVE SPEECH STUDIO (3 PRACTICE ATTEMPTS ALLOWED) */}
+        {/* VIEW 3: LIVE SPEECH STUDIO */}
         {!activeLesson && activeTab === 'progress' && (
           <div className="space-y-6">
             <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl space-y-4 shadow-xl">
@@ -584,9 +693,10 @@ export default function StudentDashboard() {
           </div>
         )}
 
-        {/* ACTIVE LESSON STEP-BY-STEP WORKFLOW */}
+        {/* ACTIVE LESSON STEP FLOW */}
         {activeLesson && (
           <div className="space-y-6">
+            {/* Live Progress Bar with Mistakes Tracker */}
             <div className="flex justify-between items-center bg-slate-900 p-4 rounded-2xl border border-slate-800 shadow-md">
               <button
                 onClick={() => setActiveLesson(null)}
@@ -594,9 +704,16 @@ export default function StudentDashboard() {
               >
                 <ArrowLeft className="w-4 h-4" /> Exit Lesson
               </button>
-              <span className="text-xs font-bold text-pink-400">
-                Grade {activeLesson.grade} • Lesson {activeLesson.lesson_number}: {activeLesson.title}
-              </span>
+              <div className="flex items-center gap-3">
+                {totalMistakes > 0 && (
+                  <span className="text-xs font-bold px-2.5 py-1 bg-rose-500/20 text-rose-300 border border-rose-500/30 rounded-xl flex items-center gap-1">
+                    <AlertTriangle className="w-3.5 h-3.5 text-rose-400" /> {totalMistakes} Mistakes Made
+                  </span>
+                )}
+                <span className="text-xs font-bold text-pink-400">
+                  Grade {activeLesson.grade} • Lesson {activeLesson.lesson_number}: {activeLesson.title}
+                </span>
+              </div>
             </div>
 
             {/* STEP 1: OBJECTIVES */}
@@ -607,7 +724,7 @@ export default function StudentDashboard() {
                 </div>
                 <h2 className="text-2xl font-black text-white">Target Learning Objectives</h2>
                 <div className="space-y-2 text-slate-300 text-sm text-left">
-                  {activeLesson.learning_objectives?.map((obj: string, i: number) => (
+                  {Array.isArray(activeLesson.learning_objectives) && activeLesson.learning_objectives.map((obj: string, i: number) => (
                     <div key={i} className="flex items-center gap-3 bg-slate-950 p-4 rounded-xl border border-slate-800">
                       <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" /> {obj}
                     </div>
@@ -628,27 +745,23 @@ export default function StudentDashboard() {
                 <div className="text-center space-y-1">
                   <span className="text-xs font-black text-pink-400 uppercase tracking-wider">Module 2</span>
                   <h2 className="text-2xl font-black text-white">Lesson Vocabulary</h2>
-                  <p className="text-xs text-slate-400">Tap the speaker icon to hear pronunciation</p>
+                  <p className="text-xs text-slate-400">Tap speaker to hear pronunciation</p>
                 </div>
                 <div className="grid grid-cols-1 gap-3">
-                  {activeLesson.vocabulary?.map((v: any, i: number) => {
-                    const word = v.word || v;
-                    const meaning = v.meaning || '';
-                    return (
-                      <div key={i} className="p-4 bg-slate-950 rounded-2xl border border-slate-800 flex justify-between items-center">
-                        <div>
-                          <span className="text-lg font-black text-purple-400">{word}</span>
-                          {meaning && <p className="text-xs text-slate-400 mt-1">{meaning}</p>}
-                        </div>
-                        <button
-                          onClick={() => speakText(`${word}. ${meaning}`)}
-                          className="p-3 bg-purple-600/20 hover:bg-purple-600 text-purple-300 hover:text-white rounded-xl transition"
-                        >
-                          <Volume2 className="w-5 h-5" />
-                        </button>
+                  {safeVocabList.map((v: any, i: number) => (
+                    <div key={i} className="p-4 bg-slate-950 rounded-2xl border border-slate-800 flex justify-between items-center">
+                      <div>
+                        <span className="text-lg font-black text-purple-400">{v.word}</span>
+                        {v.meaning && <p className="text-xs text-slate-400 mt-1">{v.meaning}</p>}
                       </div>
-                    );
-                  })}
+                      <button
+                        onClick={() => speakText(`${v.word}. ${v.meaning}`)}
+                        className="p-3 bg-purple-600/20 hover:bg-purple-600 text-purple-300 hover:text-white rounded-xl transition"
+                      >
+                        <Volume2 className="w-5 h-5" />
+                      </button>
+                    </div>
+                  ))}
                 </div>
                 <button
                   onClick={() => setLessonStep('sentences')}
@@ -659,29 +772,105 @@ export default function StudentDashboard() {
               </div>
             )}
 
-            {/* STEP 3: USEFUL SENTENCES */}
+            {/* STEP 3: USEFUL SENTENCES WITH SIDE-BY-SIDE DUAL COLUMN */}
             {lessonStep === 'sentences' && (
-              <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl space-y-6 max-w-xl mx-auto shadow-2xl">
+              <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl space-y-6 max-w-3xl mx-auto shadow-2xl">
                 <div className="text-center space-y-1">
                   <span className="text-xs font-black text-pink-400 uppercase tracking-wider">Module 3</span>
                   <h2 className="text-2xl font-black text-white">Useful Everyday Sentences</h2>
                 </div>
-                <div className="space-y-3">
-                  {activeLesson.useful_sentences?.map((s: any, i: number) => {
-                    const text = s.sentence || s;
-                    return (
-                      <div key={i} className="p-4 bg-slate-950 rounded-2xl border border-slate-800 flex items-center justify-between">
+
+                <div className={`grid grid-cols-1 ${activeLesson.image_url ? 'md:grid-cols-12 gap-6' : ''}`}>
+                  {/* Left Column: Family Illustration */}
+                  {activeLesson.image_url && (
+                    <div className="md:col-span-5 flex flex-col items-center justify-center p-4 bg-slate-950 rounded-3xl border border-slate-800 shadow-inner">
+                      <div className="relative w-full flex justify-center">
+                        <img
+                          src={activeLesson.image_url}
+                          alt="Lesson Reference Visual"
+                          className="max-h-[350px] w-auto rounded-2xl object-contain shadow-md"
+                        />
+                      </div>
+                      <span className="mt-3 text-xs font-bold text-pink-400 bg-pink-500/10 border border-pink-500/20 px-3 py-1 rounded-full">
+                        📸 Visual Guide
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Right Column: Sentences List */}
+                  <div className={`${activeLesson.image_url ? 'md:col-span-7' : 'w-full'} space-y-2.5 max-h-[380px] overflow-y-auto pr-1`}>
+                    {safeSentencesList.map((text: string, i: number) => (
+                      <div key={i} className="p-3.5 bg-slate-950 rounded-2xl border border-slate-800 flex items-center justify-between">
                         <span className="text-sm font-semibold text-slate-200 pr-2">"{text}"</span>
                         <button
                           onClick={() => speakText(text)}
-                          className="p-2.5 bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white rounded-xl transition shrink-0"
+                          className="p-2 bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white rounded-xl transition shrink-0"
                         >
                           <Volume2 className="w-4 h-4" />
                         </button>
                       </div>
-                    );
-                  })}
+                    ))}
+                  </div>
                 </div>
+
+                <button
+                  onClick={() => setLessonStep(safeDialogueList.length > 0 ? 'conversation' : 'repeat')}
+                  className="w-full py-4 bg-gradient-to-r from-pink-600 to-purple-600 text-white font-black rounded-2xl transition shadow-lg flex items-center justify-center gap-2"
+                >
+                  Continue to Conversation <ArrowRight className="w-5 h-5" />
+                </button>
+              </div>
+            )}
+
+            {/* STEP 4: CONVERSATION WITH SIDE-BY-SIDE DUAL COLUMN */}
+            {lessonStep === 'conversation' && (
+              <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl space-y-6 max-w-3xl mx-auto shadow-2xl">
+                <div className="text-center space-y-1">
+                  <span className="text-xs font-black text-pink-400 uppercase tracking-wider">Module 4</span>
+                  <h2 className="text-2xl font-black text-white">Dialogue Practice</h2>
+                  <p className="text-xs text-slate-400">Listen to how real conversations flow back and forth</p>
+                </div>
+
+                <div className={`grid grid-cols-1 ${activeLesson.image_url ? 'md:grid-cols-12 gap-6' : ''}`}>
+                  {/* Left Column: Family Illustration */}
+                  {activeLesson.image_url && (
+                    <div className="md:col-span-5 flex flex-col items-center justify-center p-4 bg-slate-950 rounded-3xl border border-slate-800 shadow-inner">
+                      <div className="relative w-full flex justify-center">
+                        <img
+                          src={activeLesson.image_url}
+                          alt="Dialogue Visual Guide"
+                          className="max-h-[350px] w-auto rounded-2xl object-contain shadow-md"
+                        />
+                      </div>
+                      <span className="mt-3 text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full">
+                        👥 Look at the Characters
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Right Column: Dialogue Bubbles */}
+                  <div className={`${activeLesson.image_url ? 'md:col-span-7' : 'w-full'} space-y-3 max-h-[380px] overflow-y-auto pr-1`}>
+                    {safeDialogueList.map((item, idx) => {
+                      const isLeft = idx % 2 === 0;
+                      return (
+                        <div key={idx} className={`flex ${isLeft ? 'justify-start' : 'justify-end'}`}>
+                          <div className={`max-w-md p-3.5 rounded-2xl text-sm font-medium flex items-center justify-between gap-4 ${
+                            isLeft ? 'bg-indigo-950/80 text-indigo-200 border border-indigo-800 rounded-tl-none' : 'bg-emerald-950/80 text-emerald-200 border border-emerald-800 rounded-tr-none'
+                          }`}>
+                            <div>
+                              <span className="text-[11px] font-black uppercase block opacity-75 mb-0.5 tracking-wider">{item.speaker}</span>
+                              <span>{item.line}</span>
+                            </div>
+                            <button onClick={() => speakText(item.line)} className="p-1.5 bg-white/10 hover:bg-white/20 text-white rounded-xl shrink-0 transition">
+                              <Volume2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 <button
                   onClick={() => setLessonStep('repeat')}
                   className="w-full py-4 bg-gradient-to-r from-pink-600 to-purple-600 text-white font-black rounded-2xl transition shadow-lg flex items-center justify-center gap-2"
@@ -691,21 +880,18 @@ export default function StudentDashboard() {
               </div>
             )}
 
-            {/* STEP 4: REPEAT DRILLS */}
+            {/* STEP 5: REPEAT DRILLS */}
             {lessonStep === 'repeat' && (
               <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl space-y-6 max-w-xl mx-auto shadow-2xl">
                 <div className="text-center space-y-1">
-                  <span className="text-xs font-black text-pink-400 uppercase tracking-wider">Module 4</span>
+                  <span className="text-xs font-black text-pink-400 uppercase tracking-wider">Module 5</span>
                   <h2 className="text-2xl font-black text-white">Listen & Repeat</h2>
                 </div>
                 <div className="space-y-3">
-                  {activeLesson.repeat_sentences?.map((r: string, i: number) => (
+                  {Array.isArray(activeLesson.repeat_sentences) && activeLesson.repeat_sentences.map((r: string, i: number) => (
                     <div key={i} className="p-4 bg-slate-950 rounded-2xl border border-slate-800 flex items-center justify-between">
                       <span className="text-sm font-bold text-indigo-300">{r}</span>
-                      <button
-                        onClick={() => speakText(r)}
-                        className="p-2.5 bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white rounded-xl transition shrink-0"
-                      >
+                      <button onClick={() => speakText(r)} className="p-2.5 bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white rounded-xl transition shrink-0">
                         <Volume2 className="w-4 h-4" />
                       </button>
                     </div>
@@ -715,66 +901,49 @@ export default function StudentDashboard() {
                   onClick={() => setLessonStep('word_builder')}
                   className="w-full py-4 bg-gradient-to-r from-pink-600 to-purple-600 text-white font-black rounded-2xl transition shadow-lg flex items-center justify-center gap-2"
                 >
-                  Play Word Builders <ArrowRight className="w-5 h-5" />
+                  Play Word Builders (Max 20 XP) <ArrowRight className="w-5 h-5" />
                 </button>
               </div>
             )}
 
-            {/* STEP 5: WORD BUILDER */}
+            {/* STEP 6: WORD BUILDER WITH ATTEMPT DEDUCTIONS */}
             {lessonStep === 'word_builder' && (
               <div className="space-y-4">
                 <WordBuilder
-                  wordsList={fiveWordsList}
-                  pointsPerWord={20}
-                  onComplete={(score) => {
-                    setTotalLessonEarnedXP(prev => prev + score);
-                    setLessonStep(activities.length > 0 ? 'activities' : quizzes.length > 0 ? 'quiz' : 'speech');
-                  }}
+                  wordsList={wordBuilderActivities.length > 0 
+                    ? wordBuilderActivities.map(a => ({
+                        word: a.question_data?.target_word || 'HELLO',
+                        meaning: a.question_data?.clue || 'A polite greeting word'
+                      }))
+                    : safeVocabList}
+                  pointsPerWord={4}
+                  onComplete={(scorePercentage) => handleWordBuilderComplete(scorePercentage)}
                 />
               </div>
             )}
 
-            {/* STEP 6: TYPING ACTIVITIES */}
-            {lessonStep === 'activities' && activities.length > 0 && (
+            {/* STEP 7: TYPING ACTIVITIES WITH ATTEMPT DEDUCTIONS */}
+            {lessonStep === 'activities' && typingActivities.length > 0 && (
               <div className="space-y-4">
                 <TypingActivity
-                  sentenceWithBlank={activities[currentActIndex]?.question_data?.sentence || "Good ___ teacher!"}
-                  correctAnswers={activities[currentActIndex]?.question_data?.acceptable_answers || ["morning", "Morning"]}
-                  points={activities[currentActIndex]?.points_reward || 15}
-                  onSuccess={(attempts) => {
-                    const earned = attempts === 1 ? 15 : attempts === 2 ? 10 : 5;
-                    setTotalLessonEarnedXP(prev => prev + earned);
-                    if (currentActIndex + 1 < activities.length) {
-                      setCurrentActIndex(prev => prev + 1);
-                    } else {
-                      setLessonStep(quizzes.length > 0 ? 'quiz' : 'speech');
-                    }
-                  }}
-                  onFail={() => {
-                    setActivityScore(60);
-                    if (currentActIndex + 1 < activities.length) {
-                      setCurrentActIndex(prev => prev + 1);
-                    } else {
-                      setLessonStep(quizzes.length > 0 ? 'quiz' : 'speech');
-                    }
-                  }}
+                  sentenceWithBlank={typingActivities[currentActIndex]?.question_data?.sentence || "Good ___ teacher!"}
+                  correctAnswers={typingActivities[currentActIndex]?.question_data?.acceptable_answers || ["morning", "Morning"]}
+                  points={4}
+                  onSuccess={(attemptsTaken) => handleTypingSuccess(attemptsTaken)}
+                  onFail={() => handleTypingFail()}
                 />
               </div>
             )}
 
-            {/* STEP 7: ASSESSMENT QUIZ */}
+            {/* STEP 8: MCQ QUIZZES */}
             {lessonStep === 'quiz' && quizzes.length > 0 && (
               <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl space-y-6 max-w-xl mx-auto shadow-2xl">
                 <div className="flex justify-between items-center">
-                  <span className="text-xs font-bold text-pink-400">
-                    Question {currentQuizIndex + 1} of {quizzes.length}
-                  </span>
-                  <span className="text-xs font-bold text-amber-400">Score: {quizScore}</span>
+                  <span className="text-xs font-bold text-pink-400">Question {currentQuizIndex + 1} of {quizzes.length}</span>
+                  <span className="text-xs font-bold text-amber-400">Correct: {quizCorrectCount}</span>
                 </div>
 
-                <h3 className="text-xl font-bold text-white">
-                  {quizzes[currentQuizIndex].question}
-                </h3>
+                <h3 className="text-xl font-bold text-white">{quizzes[currentQuizIndex].question}</h3>
 
                 <div className="space-y-3">
                   {quizzes[currentQuizIndex].options?.map((opt: string, idx: number) => {
@@ -804,17 +973,14 @@ export default function StudentDashboard() {
                 </div>
 
                 {selectedQuizOption !== null && (
-                  <button
-                    onClick={nextQuizQuestion}
-                    className="w-full py-4 bg-pink-600 hover:bg-pink-500 text-white font-black rounded-2xl shadow-lg transition"
-                  >
+                  <button onClick={nextQuizQuestion} className="w-full py-4 bg-pink-600 hover:bg-pink-500 text-white font-black rounded-2xl shadow-lg transition">
                     Next Step <ArrowRight className="w-5 h-5 inline ml-1" />
                   </button>
                 )}
               </div>
             )}
 
-            {/* STEP 8: OFFICIAL LESSON AI SPEECH EVALUATION */}
+            {/* STEP 9: AI SPEECH RECORDING */}
             {lessonStep === 'speech' && (
               <div className="space-y-4">
                 <SpeechAnalyzer
@@ -827,7 +993,7 @@ export default function StudentDashboard() {
               </div>
             )}
 
-            {/* STEP 9: BONUS CHALLENGE */}
+            {/* STEP 10: BONUS CHALLENGE */}
             {lessonStep === 'challenge' && (
               <div className="space-y-4">
                 <div className="text-center space-y-1 mb-2">
@@ -844,7 +1010,7 @@ export default function StudentDashboard() {
               </div>
             )}
 
-            {/* STEP 10: CELEBRATION */}
+            {/* STEP 11: CELEBRATION */}
             {lessonStep === 'completed' && (
               <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl text-center space-y-6 max-w-md mx-auto shadow-2xl">
                 <div className="inline-flex p-4 bg-emerald-500/20 text-emerald-400 rounded-3xl">
@@ -852,9 +1018,8 @@ export default function StudentDashboard() {
                 </div>
                 <h2 className="text-3xl font-black text-white">Lesson Completed!</h2>
                 <p className="text-slate-400 text-sm font-medium">
-                  Your final performance score has locked in and updated on the Classroom Leaderboard.
+                  Your final performance score and mistake deductions have been locked and updated on the Classroom Leaderboard.
                 </p>
-
                 <button
                   onClick={() => {
                     setActiveLesson(null);
@@ -871,7 +1036,7 @@ export default function StudentDashboard() {
         )}
       </main>
 
-      {/* Downloadable Report Card Modal */}
+      {/* Report Modal */}
       {showReportModal && (
         <StudentReportModal
           profile={profile}

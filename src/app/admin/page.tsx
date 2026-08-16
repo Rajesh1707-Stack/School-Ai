@@ -8,12 +8,12 @@ import {
   GraduationCap, UserPlus, Sparkles, CheckCircle2, ChevronRight,
   Filter, Search, Award, HelpCircle, Layers,
   BarChart3, Clock, Flame, ArrowLeft, RefreshCw, Star, Trash2, Edit3, Check,
-  Volume2, AlertCircle, Wand2, Download, X, KeyRound
+  Volume2, AlertCircle, Wand2, Download, X, KeyRound, Info, Zap, ImageIcon
 } from 'lucide-react';
 
 export default function AdminDashboard() {
   // Navigation
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'schools' | 'staff' | 'students' | 'lessons' | 'activities' | 'quizzes' | 'gamification'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'schools' | 'staff' | 'students' | 'lessons' | 'activities' | 'quizzes' | 'gamification'>('lessons');
    
   // Data Repositories
   const [schools, setSchools] = useState<any[]>([]);
@@ -66,23 +66,68 @@ export default function AdminDashboard() {
   const [stuGrade, setStuGrade] = useState('1');
   const [stuSection, setStuSection] = useState('A');
 
-  // Form States - Lesson (Complete 9-Section Builder)
+  // Form States - Lesson Meta
   const [lessonGrade, setLessonGrade] = useState('1');
   const [lessonNumber, setLessonNumber] = useState('1');
-  const [lessonTitle, setLessonTitle] = useState('');
-  const [lessonDesc, setLessonDesc] = useState('');
-  const [learningObjectives, setLearningObjectives] = useState('');
-  const [vocabInput, setVocabInput] = useState('');
-  const [usefulSentences, setUsefulSentences] = useState('');
-  const [repeatContent, setRepeatContent] = useState('');
-  const [speakingPrompt, setSpeakingPrompt] = useState('');
-  const [speakingChallenge, setSpeakingChallenge] = useState('');
+  const [lessonTitle, setLessonTitle] = useState('Greetings');
+  const [lessonDesc, setLessonDesc] = useState('Learn to greet people politely in everyday situations.');
+  const [lessonImage, setLessonImage] = useState('');
+
+  // Teacher Instruction States & Form Fields
+  const [instObj, setInstObj] = useState('Write objectives on the board. Read out loud with energy and have students repeat the goal.');
+  const [learningObjectives, setLearningObjectives] = useState(
+`Learn polite morning, afternoon, and evening greetings.
+Know how to ask someone how they are feeling.
+Develop confidence saying hello and goodbye to teachers and peers.`
+  );
+
+  const [instVocab, setInstVocab] = useState('Point to each word. Pronounce slowly, stressing syllables. Have the whole class repeat 3 times.');
+  const [vocabInput, setVocabInput] = useState(
+`Hello: A polite word used to greet someone.
+Morning: The early part of the day before noon.
+Afternoon: The time from noon until evening.
+Evening: The final part of the day before night.
+Teacher: A person who helps students learn.`
+  );
+
+  const [instPhrases, setInstPhrases] = useState('Explain contextual usage (e.g. morning vs evening). Have rows practice reading aloud line-by-line.');
+  const [usefulSentences, setUsefulSentences] = useState(
+`Good morning, teacher!
+Good afternoon, teacher!
+Good evening, everyone!
+Hello, how are you?
+I am fine, thank you.
+I am happy to see you.
+It is nice to meet you.
+Nice to meet you too.
+Have a nice day!
+Goodbye, teacher!
+See you tomorrow!
+Thank you, teacher.`
+  );
+
+  const [instConv, setInstConv] = useState('Call 2 students to the front. Assign Person 1 & Person 2 to face each other and speak with clear voice projection.');
+  const [conversationDialogue, setConversationDialogue] = useState(
+`Rajesh: Good morning, Peter! It is wonderful to see you today.
+Peter: Good morning, Rajesh! I am very happy to see you too. How are you?
+Rajesh: I am doing great, thank you! Are you ready for our English class?
+Peter: Yes, I am! Let's go inside and learn together.`
+  );
+
+  const [instDrill, setInstDrill] = useState('Lead rhythmic hand-clapping chants to build sentence cadence and eliminate hesitation.');
+  const [repeatContent, setRepeatContent] = useState(
+`Drill 1: Good morning, everyone! Hello, my name is Alex.
+Drill 2: How are you feeling today? I am very happy today.`
+  );
+
+  const [speakingPrompt, setSpeakingPrompt] = useState('Record yourself reading aloud: Good morning, teacher! How are you today?');
+  const [speakingChallenge, setSpeakingChallenge] = useState('Speak for 30 seconds about three people you greet every day and what you say to them.');
 
   // Form States - Interactive Activity
   const [actLessonId, setActLessonId] = useState('');
   const [actType, setActType] = useState<'word_builder' | 'fill_in_blank'>('word_builder');
   const [actTitle, setActTitle] = useState('');
-  const [actPoints, setActPoints] = useState('20');
+  const [actPoints, setActPoints] = useState('8');
   const [actSentence, setActSentence] = useState('');
   const [actAnswer, setActAnswer] = useState('');
   const [wbTargetWord, setWbTargetWord] = useState('');
@@ -98,10 +143,10 @@ export default function AdminDashboard() {
   const [correctOptIndex, setCorrectOptIndex] = useState('0');
 
   // Form States - Gamification & XP Configurations
-  const [ptsLesson, setPtsLesson] = useState(50);
-  const [ptsSpeaking, setPtsSpeaking] = useState(15);
-  const [ptsActivity, setPtsActivity] = useState(10);
-  const [ptsQuiz, setPtsQuiz] = useState(20);
+  const [ptsLesson, setPtsLesson] = useState(40);
+  const [ptsSpeaking, setPtsSpeaking] = useState(20);
+  const [ptsActivity, setPtsActivity] = useState(8);
+  const [ptsQuiz, setPtsQuiz] = useState(8);
 
   const [loading, setLoading] = useState(true);
   const [statusMsg, setStatusMsg] = useState('');
@@ -151,6 +196,106 @@ export default function AdminDashboard() {
     if (spData) setSpeechLogs(spData);
 
     setLoading(false);
+  };
+
+  // 1-Click Complete Auto Deployment
+  const handleAutoDeployLesson1With15Questions = async () => {
+    if (!confirm('This will automatically publish Lesson 1 ("Greetings") with teacher instructions and deploy all 15 at-home practice activities (5 Wordwall, 5 Typing, 5 Quizzes) into Supabase. Proceed?')) return;
+
+    setStatusMsg('Auto-deploying Lesson 1 and all 15 questions...');
+
+    try {
+      // 1. Insert/Publish Lesson 1
+      const { data: lesson, error: lErr } = await supabase.from('lessons').insert([{
+        grade: 1,
+        lesson_number: 1,
+        title: 'Greetings',
+        description: 'Learn to greet people politely in everyday situations.',
+        image_url: null,
+        learning_objectives: [
+          'Learn polite morning, afternoon, and evening greetings.',
+          'Know how to ask someone how they are feeling.',
+          'Develop confidence saying hello and goodbye to teachers and peers.'
+        ],
+        vocabulary: [
+          { word: 'Hello', meaning: 'A polite word used to greet someone.' },
+          { word: 'Morning', meaning: 'The early part of the day before noon.' },
+          { word: 'Afternoon', meaning: 'The time from noon until evening.' },
+          { word: 'Evening', meaning: 'The final part of the day before night.' },
+          { word: 'Teacher', meaning: 'A person who helps students learn.' }
+        ],
+        useful_sentences: [
+          'Good morning, teacher!',
+          'Good afternoon, teacher!',
+          'Good evening, everyone!',
+          'Hello, how are you?',
+          'I am fine, thank you.',
+          'I am happy to see you.',
+          'It is nice to meet you.',
+          'Nice to meet you too.',
+          'Have a nice day!',
+          'Goodbye, teacher!',
+          'See you tomorrow!',
+          'Thank you, teacher.'
+        ],
+        conversation_dialogue: [
+          { speaker: 'Rajesh', line: 'Good morning, Peter! It is wonderful to see you today.' },
+          { speaker: 'Peter', line: 'Good morning, Rajesh! I am very happy to see you too. How are you?' },
+          { speaker: 'Rajesh', line: 'I am doing great, thank you! Are you ready for our English class?' },
+          { speaker: 'Peter', line: "Yes, I am! Let's go inside and learn together." }
+        ],
+        repeat_sentences: [
+          'Drill 1: Good morning, everyone! Hello, my name is Alex.',
+          'Drill 2: How are you feeling today? I am very happy today.'
+        ],
+        teacher_instructions: {
+          objectives: 'Write objectives on the board. Read out loud with energy and have students repeat the goal.',
+          vocabulary: 'Point to each word. Pronounce slowly, stressing syllables. Have the whole class repeat 3 times.',
+          phrases: 'Explain contextual usage (e.g. morning vs evening). Have rows practice reading aloud line-by-line.',
+          conversation: 'Call 2 students to the front. Assign Person 1 & Person 2 to face each other and speak with clear voice projection.',
+          drills: 'Lead rhythmic hand-clapping chants to build sentence cadence and eliminate hesitation.'
+        },
+        speaking_prompt: 'Record yourself reading aloud: Good morning, teacher! How are you today?',
+        speaking_challenge: 'Speak for 30 seconds about three people you greet every day and what you say to them.'
+      }]).select().single();
+
+      if (lErr || !lesson) {
+        alert(lErr?.message || 'Error inserting lesson');
+        setStatusMsg('');
+        return;
+      }
+
+      // 2. Insert 5 Wordwall Activities & 5 Typing Challenges
+      await supabase.from('activities').insert([
+        { lesson_id: lesson.id, type: 'word_builder', title: 'Build Word: HELLO', instruction: 'Arrange the scrambled letters to spell the correct word (Max 3 attempts).', question_data: { target_word: 'HELLO', clue: 'A friendly, polite greeting word.' }, points_reward: 8 },
+        { lesson_id: lesson.id, type: 'word_builder', title: 'Build Word: MORNING', instruction: 'Arrange the scrambled letters to spell the correct word (Max 3 attempts).', question_data: { target_word: 'MORNING', clue: 'The early part of the day before noon.' }, points_reward: 8 },
+        { lesson_id: lesson.id, type: 'word_builder', title: 'Build Word: AFTERNOON', instruction: 'Arrange the scrambled letters to spell the correct word (Max 3 attempts).', question_data: { target_word: 'AFTERNOON', clue: 'The time of day from midday until evening.' }, points_reward: 8 },
+        { lesson_id: lesson.id, type: 'word_builder', title: 'Build Word: EVENING', instruction: 'Arrange the scrambled letters to spell the correct word (Max 3 attempts).', question_data: { target_word: 'EVENING', clue: 'The final part of the day before night.' }, points_reward: 8 },
+        { lesson_id: lesson.id, type: 'word_builder', title: 'Build Word: TEACHER', instruction: 'Arrange the scrambled letters to spell the correct word (Max 3 attempts).', question_data: { target_word: 'TEACHER', clue: 'A person at school who helps students learn.' }, points_reward: 8 },
+        
+        { lesson_id: lesson.id, type: 'fill_in_blank', title: 'Complete Sentence 1', instruction: 'Type the correct missing word into the blank space (Max 3 attempts).', question_data: { sentence: 'Good ___ teacher, how are you today?', acceptable_answers: ['morning', 'Morning'] }, points_reward: 8 },
+        { lesson_id: lesson.id, type: 'fill_in_blank', title: 'Complete Sentence 2', instruction: 'Type the correct missing word into the blank space (Max 3 attempts).', question_data: { sentence: 'It is wonderful to ___ you today.', acceptable_answers: ['meet', 'see'] }, points_reward: 8 },
+        { lesson_id: lesson.id, type: 'fill_in_blank', title: 'Complete Sentence 3', instruction: 'Type the correct missing word into the blank space (Max 3 attempts).', question_data: { sentence: 'Hello, my ___ is Rajesh.', acceptable_answers: ['name', 'Name'] }, points_reward: 8 },
+        { lesson_id: lesson.id, type: 'fill_in_blank', title: 'Complete Sentence 4', instruction: 'Type the correct missing word into the blank space (Max 3 attempts).', question_data: { sentence: 'I am very ___ to learn English today.', acceptable_answers: ['happy', 'excited'] }, points_reward: 8 },
+        { lesson_id: lesson.id, type: 'fill_in_blank', title: 'Complete Sentence 5', instruction: 'Type the correct missing word into the blank space (Max 3 attempts).', question_data: { sentence: 'Goodbye teacher, see you ___!', acceptable_answers: ['tomorrow', 'Tomorrow'] }, points_reward: 8 }
+      ]);
+
+      // 3. Insert 5 Multiple-Choice Quizzes
+      await supabase.from('quizzes').insert([
+        { lesson_id: lesson.id, question: 'What is the best greeting to say when you arrive at school at 8:30 AM?', options: ['Good night', 'Good morning', 'Good evening', 'Goodbye'], correct_option_index: 1, marks: 8 },
+        { lesson_id: lesson.id, question: 'If your classmate asks "How are you today?", what should you say?', options: ['I am in Grade 1.', 'I am fine, thank you!', 'My name is Peter.', 'See you tomorrow.'], correct_option_index: 1, marks: 8 },
+        { lesson_id: lesson.id, question: 'What greeting do you use after 12:00 PM (lunch time)?', options: ['Good morning', 'Good afternoon', 'Good night', 'Hello teacher morning'], correct_option_index: 1, marks: 8 },
+        { lesson_id: lesson.id, question: 'What polite phrase do you say when meeting someone new?', options: ['Nice to meet you.', 'Give me your book.', 'Go home now.', 'I am sleeping.'], correct_option_index: 0, marks: 8 },
+        { lesson_id: lesson.id, question: 'What should you say to your teacher when leaving the classroom at the end of the day?', options: ['Good morning, teacher!', 'Goodbye teacher, see you tomorrow!', 'How are you?', 'Welcome!'], correct_option_index: 1, marks: 8 }
+      ]);
+
+      setStatusMsg('Lesson 1 & all 15 Interactive Activities successfully deployed!');
+      fetchAllAdminData();
+      setTimeout(() => setStatusMsg(''), 4000);
+    } catch (err: any) {
+      alert(err.message);
+      setStatusMsg('');
+    }
   };
 
   const handleCreateSchool = async (e: React.FormEvent) => {
@@ -302,36 +447,58 @@ export default function AdminDashboard() {
     }
   };
 
+  const formatConversationForDb = (text: string) => {
+    return text.split('\n').filter(Boolean).map(line => {
+      const parts = line.split(':');
+      return {
+        speaker: parts[0]?.trim() || 'Speaker',
+        line: parts.slice(1).join(':').trim() || line
+      };
+    });
+  };
+
   const handleCreateLesson = async (e: React.FormEvent) => {
     e.preventDefault();
     const objectivesArr = learningObjectives.split('\n').filter(Boolean);
-    const vocabArr = vocabInput.split('\n').map(v => ({ word: v.trim() })).filter(v => v.word);
+    const vocabArr = vocabInput.split('\n').map(v => {
+      const parts = v.split(':');
+      return {
+        word: parts[0]?.trim() || v.trim(),
+        meaning: parts.slice(1).join(':').trim() || ''
+      };
+    }).filter(v => v.word);
+    
     const sentencesArr = usefulSentences.split('\n').map(s => ({ sentence: s.trim() })).filter(s => s.sentence);
     const repeatArr = repeatContent.split('\n').filter(Boolean);
+    const conversationJson = formatConversationForDb(conversationDialogue);
+
+    const teacherInstructionsData = {
+      objectives: instObj,
+      vocabulary: instVocab,
+      phrases: instPhrases,
+      conversation: instConv,
+      drills: instDrill
+    };
 
     const { error } = await supabase.from('lessons').insert([{
       grade: parseInt(lessonGrade),
       lesson_number: parseInt(lessonNumber),
       title: lessonTitle,
       description: lessonDesc,
+      image_url: lessonImage.trim() || null,
       learning_objectives: objectivesArr,
       vocabulary: vocabArr,
       useful_sentences: sentencesArr,
+      conversation_dialogue: conversationJson,
       repeat_sentences: repeatArr,
+      teacher_instructions: teacherInstructionsData,
       speaking_prompt: speakingPrompt,
       speaking_challenge: speakingChallenge,
     }]);
 
     if (!error) {
-      setLessonTitle('');
-      setLessonDesc('');
-      setLearningObjectives('');
-      setVocabInput('');
-      setUsefulSentences('');
-      setRepeatContent('');
-      setSpeakingPrompt('');
-      setSpeakingChallenge('');
-      setStatusMsg(`Lesson published to Grade ${lessonGrade} Global Curriculum!`);
+      setStatusMsg(`Lesson published with Teacher Instructions to Grade ${lessonGrade} Curriculum!`);
+      setLessonImage('');
       fetchAllAdminData();
       setTimeout(() => setStatusMsg(''), 3000);
     } else {
@@ -345,10 +512,28 @@ export default function AdminDashboard() {
     setLessonNumber(lesson.lesson_number?.toString() || '1');
     setLessonTitle(lesson.title || '');
     setLessonDesc(lesson.description || '');
+    setLessonImage(lesson.image_url || '');
     setLearningObjectives(Array.isArray(lesson.learning_objectives) ? lesson.learning_objectives.join('\n') : '');
-    setVocabInput(Array.isArray(lesson.vocabulary) ? lesson.vocabulary.map((v: any) => v.word || v).join('\n') : '');
+    setVocabInput(Array.isArray(lesson.vocabulary) ? lesson.vocabulary.map((v: any) => `${v.word || v}${v.meaning ? `: ${v.meaning}` : ''}`).join('\n') : '');
     setUsefulSentences(Array.isArray(lesson.useful_sentences) ? lesson.useful_sentences.map((s: any) => s.sentence || s).join('\n') : '');
+    
+    // Format conversation dialogue back to text for editing
+    if (Array.isArray(lesson.conversation_dialogue)) {
+      setConversationDialogue(lesson.conversation_dialogue.map((c: any) => `${c.speaker || 'Speaker'}: ${c.line || ''}`).join('\n'));
+    } else {
+      setConversationDialogue(lesson.conversation_dialogue || '');
+    }
+
     setRepeatContent(Array.isArray(lesson.repeat_sentences) ? lesson.repeat_sentences.join('\n') : '');
+    
+    if (lesson.teacher_instructions) {
+      setInstObj(lesson.teacher_instructions.objectives || '');
+      setInstVocab(lesson.teacher_instructions.vocabulary || '');
+      setInstPhrases(lesson.teacher_instructions.phrases || '');
+      setInstConv(lesson.teacher_instructions.conversation || '');
+      setInstDrill(lesson.teacher_instructions.drills || '');
+    }
+
     setSpeakingPrompt(lesson.speaking_prompt || '');
     setSpeakingChallenge(lesson.speaking_challenge || '');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -359,9 +544,25 @@ export default function AdminDashboard() {
     if (!editingLessonId) return;
 
     const objectivesArr = learningObjectives.split('\n').filter(Boolean);
-    const vocabArr = vocabInput.split('\n').map(v => ({ word: v.trim() })).filter(v => v.word);
+    const vocabArr = vocabInput.split('\n').map(v => {
+      const parts = v.split(':');
+      return {
+        word: parts[0]?.trim() || v.trim(),
+        meaning: parts.slice(1).join(':').trim() || ''
+      };
+    }).filter(v => v.word);
+
     const sentencesArr = usefulSentences.split('\n').map(s => ({ sentence: s.trim() })).filter(s => s.sentence);
     const repeatArr = repeatContent.split('\n').filter(Boolean);
+    const conversationJson = formatConversationForDb(conversationDialogue);
+
+    const teacherInstructionsData = {
+      objectives: instObj,
+      vocabulary: instVocab,
+      phrases: instPhrases,
+      conversation: instConv,
+      drills: instDrill
+    };
 
     const { error } = await supabase
       .from('lessons')
@@ -370,10 +571,13 @@ export default function AdminDashboard() {
         lesson_number: parseInt(lessonNumber),
         title: lessonTitle,
         description: lessonDesc,
+        image_url: lessonImage.trim() || null,
         learning_objectives: objectivesArr,
         vocabulary: vocabArr,
         useful_sentences: sentencesArr,
+        conversation_dialogue: conversationJson,
         repeat_sentences: repeatArr,
+        teacher_instructions: teacherInstructionsData,
         speaking_prompt: speakingPrompt,
         speaking_challenge: speakingChallenge,
       })
@@ -381,14 +585,7 @@ export default function AdminDashboard() {
 
     if (!error) {
       setEditingLessonId(null);
-      setLessonTitle('');
-      setLessonDesc('');
-      setLearningObjectives('');
-      setVocabInput('');
-      setUsefulSentences('');
-      setRepeatContent('');
-      setSpeakingPrompt('');
-      setSpeakingChallenge('');
+      setLessonImage('');
       setStatusMsg('Lesson updated successfully!');
       fetchAllAdminData();
       setTimeout(() => setStatusMsg(''), 3000);
@@ -426,7 +623,7 @@ export default function AdminDashboard() {
         type: actType,
         title: actTitle,
         question_data: questionData,
-        points_reward: parseInt(actPoints) || 20
+        points_reward: parseInt(actPoints) || 8
       }).eq('id', editingActivityId);
 
       if (!error) {
@@ -451,7 +648,7 @@ export default function AdminDashboard() {
           ? 'Arrange the scrambled letters to spell the correct word (Max 3 attempts).' 
           : 'Type the correct missing word into the blank space (Max 3 attempts).',
         question_data: questionData,
-        points_reward: parseInt(actPoints) || 20
+        points_reward: parseInt(actPoints) || 8
       }]);
 
       if (!error) {
@@ -474,7 +671,7 @@ export default function AdminDashboard() {
     setActLessonId(act.lesson_id || '');
     setActType(act.type || 'word_builder');
     setActTitle(act.title || '');
-    setActPoints(act.points_reward?.toString() || '20');
+    setActPoints(act.points_reward?.toString() || '8');
     if (act.type === 'word_builder') {
       setWbTargetWord(act.question_data?.target_word || '');
       setWbClue(act.question_data?.clue || '');
@@ -506,7 +703,7 @@ export default function AdminDashboard() {
         question: quizQuestion,
         options: [optA, optB, optC, optD],
         correct_option_index: parseInt(correctOptIndex),
-        marks: 5
+        marks: 8
       }).eq('id', editingQuizId);
 
       if (!error) {
@@ -528,7 +725,7 @@ export default function AdminDashboard() {
         question: quizQuestion,
         options: [optA, optB, optC, optD],
         correct_option_index: parseInt(correctOptIndex),
-        marks: 5
+        marks: 8
       }]);
 
       if (!error) {
@@ -538,6 +735,7 @@ export default function AdminDashboard() {
         setOptC('');
         setOptD('');
         setStatusMsg('Quiz question added!');
+        fetchAllAdminData();
         setTimeout(() => setStatusMsg(''), 3000);
       } else {
         alert(error.message);
@@ -600,7 +798,7 @@ export default function AdminDashboard() {
   });
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans selection:bg-indigo-500 selection:text-slate-900">
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans selection:bg-indigo-500 selection:text-white">
       {/* Top Navbar */}
       <header className="bg-white/95 border-b border-slate-200 backdrop-blur-xl px-4 sm:px-6 py-3.5 flex items-center justify-between sticky top-0 z-50 shadow-sm">
         <div className="flex items-center gap-3">
@@ -611,7 +809,7 @@ export default function AdminDashboard() {
             <h1 className="text-base sm:text-xl font-black tracking-tight text-slate-900 flex items-center gap-2">
               English Excel <span className="text-xs px-2 py-0.5 bg-indigo-500/20 text-indigo-400 rounded-full border border-indigo-500/30">Super Admin</span>
             </h1>
-            <p className="hidden sm:block text-xs text-slate-500 font-semibold">Multi-School Management & Full Access Control Engine</p>
+            <p className="hidden sm:block text-xs text-slate-500 font-semibold">Teacher Live Guide & Curriculum Engine</p>
           </div>
         </div>
 
@@ -1107,7 +1305,6 @@ export default function AdminDashboard() {
         {/* TAB: STUDENT ROSTER */}
         {activeTab === 'students' && !selectedStudentDetail && (
           <div className="space-y-6">
-            {/* Student Registration Form */}
             <div className="bg-white border border-slate-200 p-6 rounded-3xl">
               <h2 className="text-lg font-black mb-4 flex items-center gap-2 text-slate-900">
                 <UserPlus className="w-5 h-5 text-pink-600" /> Register New Student Account (Any School)
@@ -1449,43 +1646,53 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* TAB: LESSONS CURRICULUM */}
+        {/* TAB: LESSONS CURRICULUM BUILDER */}
         {activeTab === 'lessons' && (
           <div className="space-y-6">
-            <div className="bg-white border border-slate-200 p-6 rounded-3xl">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-black flex items-center gap-2 text-slate-900">
-                  <BookOpen className="w-5 h-5 text-emerald-600" /> 
-                  {editingLessonId ? 'Edit Global Lesson' : 'Master Curriculum Builder (Grades 1-10 Global)'}
-                </h2>
-                {editingLessonId && (
+            <div className="bg-white border border-slate-200 p-6 rounded-3xl space-y-6 shadow-sm">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                  <h2 className="text-xl font-black flex items-center gap-2 text-slate-900">
+                    <BookOpen className="w-6 h-6 text-emerald-600" /> 
+                    {editingLessonId ? 'Edit Global Lesson' : 'Master Lesson & Teacher Instruction Builder'}
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Add lesson material along with step-by-step guidance for teachers to take class live.
+                  </p>
+                </div>
+                <div className="flex gap-2">
                   <button
-                    onClick={() => {
-                      setEditingLessonId(null);
-                      setLessonTitle('');
-                      setLessonDesc('');
-                      setLearningObjectives('');
-                      setVocabInput('');
-                      setUsefulSentences('');
-                      setRepeatContent('');
-                      setSpeakingPrompt('');
-                      setSpeakingChallenge('');
-                    }}
-                    className="text-xs font-bold px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-xl"
+                    type="button"
+                    onClick={handleAutoDeployLesson1With15Questions}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black text-xs rounded-xl shadow-md transition"
                   >
-                    Cancel Edit
+                    <Zap className="w-4 h-4 fill-amber-300 text-amber-300" /> ⚡ Auto-Deploy Lesson 1 + 15 Questions
                   </button>
-                )}
+                  {editingLessonId && (
+                    <button
+                      onClick={() => {
+                        setEditingLessonId(null);
+                        setLessonTitle('');
+                        setLessonDesc('');
+                        setLessonImage('');
+                      }}
+                      className="text-xs font-bold px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-xl"
+                    >
+                      Cancel Edit
+                    </button>
+                  )}
+                </div>
               </div>
 
-              <form onSubmit={editingLessonId ? handleUpdateLesson : handleCreateLesson} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <form onSubmit={editingLessonId ? handleUpdateLesson : handleCreateLesson} className="space-y-6">
+                {/* Meta details */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-500 mb-1">Target Grade</label>
                     <select
                       value={lessonGrade}
                       onChange={(e) => setLessonGrade(e.target.value)}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 outline-none focus:border-emerald-500 font-medium"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-bold outline-none focus:border-emerald-500"
                     >
                       {[1,2,3,4,5,6,7,8,9,10].map(g => (
                         <option key={g} value={g}>Grade {g}</option>
@@ -1498,73 +1705,167 @@ export default function AdminDashboard() {
                       type="number"
                       value={lessonNumber}
                       onChange={(e) => setLessonNumber(e.target.value)}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 outline-none focus:border-emerald-500 font-medium"
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-bold outline-none focus:border-emerald-500"
                       min="1"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 mb-1">Lesson Title</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Greetings"
+                      value={lessonTitle}
+                      onChange={(e) => setLessonTitle(e.target.value)}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-bold outline-none focus:border-emerald-500"
                       required
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">Lesson Title</label>
+                  <label className="block text-xs font-bold text-slate-500 mb-1">Lesson Description</label>
                   <input
                     type="text"
-                    placeholder="e.g. Introducing Yourself and Making Friends"
-                    value={lessonTitle}
-                    onChange={(e) => setLessonTitle(e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 outline-none focus:border-emerald-500 font-medium"
+                    placeholder="Learn to greet people politely in everyday situations."
+                    value={lessonDesc}
+                    onChange={(e) => setLessonDesc(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium outline-none focus:border-emerald-500"
                     required
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-1">🎯 1. Learning Objectives (One per line)</label>
-                    <textarea
-                      placeholder="Greet others with confidence&#10;Form clear introductory sentences"
-                      value={learningObjectives}
-                      onChange={(e) => setLearningObjectives(e.target.value)}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 outline-none focus:border-emerald-500 font-medium h-24"
-                    />
+                {/* Lesson Visual / Reference Image URL */}
+                <div className="p-5 bg-slate-50/70 rounded-2xl border border-slate-200 space-y-3">
+                  <div className="flex items-center gap-2 text-indigo-700 text-xs font-black uppercase">
+                    <ImageIcon className="w-4 h-4" /> 🖼️ Lesson Visual / Reference Image (Optional)
                   </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-1">📖 2. Vocabulary Words (One per line)</label>
-                    <textarea
-                      placeholder="Confident&#10;Communication&#10;Introduce"
-                      value={vocabInput}
-                      onChange={(e) => setVocabInput(e.target.value)}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 outline-none focus:border-emerald-500 font-medium h-24"
-                    />
-                  </div>
+                  <input
+                    type="url"
+                    placeholder="https://ihmtwngbrrkqbqwbxzah.supabase.co/storage/v1/object/public/lesson-assets/..."
+                    value={lessonImage}
+                    onChange={(e) => setLessonImage(e.target.value)}
+                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-900 text-xs font-medium outline-none focus:border-indigo-500"
+                  />
+                  {lessonImage && (
+                    <div className="mt-2 flex items-center gap-4">
+                      <div className="relative w-36 h-24 rounded-xl overflow-hidden border border-slate-300 shadow-sm bg-slate-100">
+                        <img src={lessonImage} alt="Visual Preview" className="w-full h-full object-cover" />
+                      </div>
+                      <div className="text-xs text-slate-500">
+                        <span className="font-bold text-emerald-600">✓ Image Preview Loaded</span>
+                        <p className="text-[11px] text-slate-400 mt-0.5">This picture will be displayed during in-class roleplay & dialogue practice.</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-1">💬 3. Useful Sentences (One per line)</label>
-                    <textarea
-                      placeholder="Hello, my name is...&#10;Nice to meet you!"
-                      value={usefulSentences}
-                      onChange={(e) => setUsefulSentences(e.target.value)}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 outline-none focus:border-emerald-500 font-medium h-24"
-                    />
+                {/* Section 1: Objectives */}
+                <div className="p-5 bg-slate-50/70 rounded-2xl border border-slate-200 space-y-3">
+                  <div className="flex items-center gap-2 text-indigo-700 text-xs font-black uppercase">
+                    <Info className="w-4 h-4" /> 🛠️ Teacher Instruction: How to Teach Section 1 (Objectives)
                   </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-1">🗣️ 5. Repeat & Fluency Drill (One per line)</label>
-                    <textarea
-                      placeholder="I am proud of my school.&#10;I love learning English."
-                      value={repeatContent}
-                      onChange={(e) => setRepeatContent(e.target.value)}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 outline-none focus:border-emerald-500 font-medium h-24"
-                    />
-                  </div>
+                  <input
+                    type="text"
+                    placeholder="Instructions for the teacher..."
+                    value={instObj}
+                    onChange={(e) => setInstObj(e.target.value)}
+                    className="w-full px-4 py-2 bg-white border border-indigo-100 rounded-xl text-xs font-medium text-slate-700 outline-none"
+                  />
+                  <label className="block text-xs font-bold text-slate-500">🎯 1. Learning Objectives (One per line)</label>
+                  <textarea
+                    value={learningObjectives}
+                    onChange={(e) => setLearningObjectives(e.target.value)}
+                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-900 text-sm font-medium h-24 outline-none focus:border-emerald-500"
+                  />
                 </div>
 
+                {/* Section 2: Vocabulary */}
+                <div className="p-5 bg-slate-50/70 rounded-2xl border border-slate-200 space-y-3">
+                  <div className="flex items-center gap-2 text-indigo-700 text-xs font-black uppercase">
+                    <Info className="w-4 h-4" /> 🛠️ Teacher Instruction: How to Teach Section 2 (Vocabulary Bank)
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Instructions for the teacher..."
+                    value={instVocab}
+                    onChange={(e) => setInstVocab(e.target.value)}
+                    className="w-full px-4 py-2 bg-white border border-indigo-100 rounded-xl text-xs font-medium text-slate-700 outline-none"
+                  />
+                  <label className="block text-xs font-bold text-slate-500">📖 2. Vocabulary Words (One per line, e.g. "Hello: Meaning")</label>
+                  <textarea
+                    value={vocabInput}
+                    onChange={(e) => setVocabInput(e.target.value)}
+                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-900 text-sm font-medium h-24 outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                {/* Section 3: Related Phrases */}
+                <div className="p-5 bg-slate-50/70 rounded-2xl border border-slate-200 space-y-3">
+                  <div className="flex items-center gap-2 text-indigo-700 text-xs font-black uppercase">
+                    <Info className="w-4 h-4" /> 🛠️ Teacher Instruction: How to Teach Section 3 (Related Vocabulary & Daily Phrases)
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Instructions for the teacher..."
+                    value={instPhrases}
+                    onChange={(e) => setInstPhrases(e.target.value)}
+                    className="w-full px-4 py-2 bg-white border border-indigo-100 rounded-xl text-xs font-medium text-slate-700 outline-none"
+                  />
+                  <label className="block text-xs font-bold text-slate-500">💬 3. Related Vocabulary & Daily Phrases Practice (One per line)</label>
+                  <textarea
+                    value={usefulSentences}
+                    onChange={(e) => setUsefulSentences(e.target.value)}
+                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-900 text-sm font-medium h-32 outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                {/* Section 4: Conversation Dialogue */}
+                <div className="p-5 bg-slate-50/70 rounded-2xl border border-slate-200 space-y-3">
+                  <div className="flex items-center gap-2 text-indigo-700 text-xs font-black uppercase">
+                    <Info className="w-4 h-4" /> 🛠️ Teacher Instruction: How to Teach Section 4 (Conversation Dialogue in Pairs)
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Instructions for the teacher..."
+                    value={instConv}
+                    onChange={(e) => setInstConv(e.target.value)}
+                    className="w-full px-4 py-2 bg-white border border-indigo-100 rounded-xl text-xs font-medium text-slate-700 outline-none"
+                  />
+                  <label className="block text-xs font-bold text-slate-500">👥 4. Conversation Dialogue (Speaker: Dialogue Line)</label>
+                  <textarea
+                    value={conversationDialogue}
+                    onChange={(e) => setConversationDialogue(e.target.value)}
+                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-900 text-sm font-medium h-32 outline-none focus:border-emerald-500 font-mono"
+                  />
+                </div>
+
+                {/* Section 5: Repeat & Fluency Drill */}
+                <div className="p-5 bg-slate-50/70 rounded-2xl border border-slate-200 space-y-3">
+                  <div className="flex items-center gap-2 text-indigo-700 text-xs font-black uppercase">
+                    <Info className="w-4 h-4" /> 🛠️ Teacher Instruction: How to Teach Section 5 (Repeat & Fluency Drill)
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Instructions for the teacher..."
+                    value={instDrill}
+                    onChange={(e) => setInstDrill(e.target.value)}
+                    className="w-full px-4 py-2 bg-white border border-indigo-100 rounded-xl text-xs font-medium text-slate-700 outline-none"
+                  />
+                  <label className="block text-xs font-bold text-slate-500">🗣️ 5. Repeat & Fluency Drill (One per line)</label>
+                  <textarea
+                    value={repeatContent}
+                    onChange={(e) => setRepeatContent(e.target.value)}
+                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-900 text-sm font-medium h-24 outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                {/* At-Home Voice Prompts */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-1">🎤 9. AI Speech Evaluation Prompt</label>
+                    <label className="block text-xs font-bold text-slate-500 mb-1">🎤 AI Speech Evaluation Prompt</label>
                     <input
                       type="text"
-                      placeholder="Introduce yourself by stating your name, age, and favorite subject."
                       value={speakingPrompt}
                       onChange={(e) => setSpeakingPrompt(e.target.value)}
                       className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 outline-none focus:border-emerald-500 font-medium"
@@ -1575,7 +1876,6 @@ export default function AdminDashboard() {
                     <label className="block text-xs font-bold text-slate-500 mb-1">🏆 Follow-up 30-Second Speaking Challenge</label>
                     <input
                       type="text"
-                      placeholder="Speak for 30 seconds about your best friend."
                       value={speakingChallenge}
                       onChange={(e) => setSpeakingChallenge(e.target.value)}
                       className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 outline-none focus:border-emerald-500 font-medium"
@@ -1594,15 +1894,21 @@ export default function AdminDashboard() {
               </form>
             </div>
 
+            {/* List of Lessons */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {lessonsList.map(l => (
                 <div key={l.id} className="p-5 bg-white border border-slate-200 rounded-3xl space-y-3 shadow-sm flex justify-between items-start">
-                  <div>
-                    <span className="px-3 py-1 bg-emerald-500/20 text-emerald-700 font-black text-xs rounded-full border border-emerald-500/30">
+                  <div className="space-y-2 flex-1 pr-4">
+                    <span className="px-3 py-1 bg-emerald-50 text-emerald-700 font-black text-xs rounded-full border border-emerald-200">
                       GRADE {l.grade} • LESSON {l.lesson_number}
                     </span>
-                    <h3 className="text-lg font-bold text-slate-900 mt-2">{l.title}</h3>
-                    <p className="text-xs text-slate-500 italic">Prompt: "{l.speaking_prompt}"</p>
+                    <h3 className="text-lg font-bold text-slate-900">{l.title}</h3>
+                    <p className="text-xs text-slate-500 italic line-clamp-1">Prompt: "{l.speaking_prompt}"</p>
+                    {l.image_url && (
+                      <div className="flex items-center gap-1.5 text-xs text-indigo-600 font-bold">
+                        <ImageIcon className="w-3.5 h-3.5" /> Has Visual Reference Attached
+                      </div>
+                    )}
                   </div>
                   <button
                     onClick={() => handleSelectLessonForEdit(l)}
@@ -1616,164 +1922,38 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* TAB: INTERACTIVE ACTIVITIES */}
+        {/* TAB: ACTIVITIES & QUIZZES */}
         {activeTab === 'activities' && (
           <div className="space-y-6">
-            <div className="bg-white border border-slate-200 p-6 rounded-3xl space-y-6 shadow-sm">
-              <div className="flex justify-between items-center">
-                <div>
-                  <h2 className="text-xl font-black flex items-center gap-2 text-slate-900">
-                    <Layers className="w-5 h-5 text-amber-500" /> {editingActivityId ? 'Edit Activity' : 'Interactive Activity Creator'}
-                  </h2>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Create engaging Word Builder letter scrambles and Typing challenges with the 3-attempt rule.
-                  </p>
-                </div>
-                {editingActivityId && (
-                  <button
-                    onClick={() => {
-                      setEditingActivityId(null);
-                      setActTitle('');
-                      setActSentence('');
-                      setActAnswer('');
-                      setWbTargetWord('');
-                      setWbClue('');
-                    }}
-                    className="text-xs font-bold px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-xl"
-                  >
-                    Cancel Edit
-                  </button>
+            <div className="bg-white border border-slate-200 p-6 rounded-3xl space-y-4 shadow-sm">
+              <h2 className="text-xl font-black text-slate-900 flex items-center gap-2">
+                <Layers className="w-5 h-5 text-amber-500" /> Interactive Activity Creator (Wordwall / Typing)
+              </h2>
+              <form onSubmit={handleCreateActivity} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <select value={actLessonId} onChange={(e) => setActLessonId(e.target.value)} className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold">
+                  {lessonsList.map(l => <option key={l.id} value={l.id}>Grade {l.grade} - Lesson {l.lesson_number}: {l.title}</option>)}
+                </select>
+                <select value={actType} onChange={(e: any) => setActType(e.target.value)} className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold">
+                  <option value="word_builder">🧩 Word Builder (Letter Scramble)</option>
+                  <option value="fill_in_blank">⌨️ Typing Challenge</option>
+                </select>
+                <input type="number" value={actPoints} onChange={(e) => setActPoints(e.target.value)} placeholder="Points (8 XP)" className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold" />
+                <input type="text" value={actTitle} onChange={(e) => setActTitle(e.target.value)} placeholder="Activity Title" className="md:col-span-3 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold" required />
+                {actType === 'word_builder' ? (
+                  <>
+                    <input type="text" value={wbTargetWord} onChange={(e) => setWbTargetWord(e.target.value)} placeholder="Target Word (e.g. HELLO)" className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-mono uppercase font-bold" required />
+                    <input type="text" value={wbClue} onChange={(e) => setWbClue(e.target.value)} placeholder="Clue / Meaning" className="md:col-span-2 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold" required />
+                  </>
+                ) : (
+                  <>
+                    <input type="text" value={actSentence} onChange={(e) => setActSentence(e.target.value)} placeholder="Good ___ teacher (Use '___')" className="md:col-span-2 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold" required />
+                    <input type="text" value={actAnswer} onChange={(e) => setActAnswer(e.target.value)} placeholder="morning, Morning" className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold" required />
+                  </>
                 )}
-              </div>
-
-              <form onSubmit={handleCreateActivity} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-1">Target Lesson</label>
-                    <select
-                      value={actLessonId}
-                      onChange={(e) => setActLessonId(e.target.value)}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 outline-none focus:border-amber-500 font-medium text-xs"
-                      required
-                    >
-                      {lessonsList.map(l => (
-                        <option key={l.id} value={l.id}>
-                          Grade {l.grade} - Lesson {l.lesson_number}: {l.title}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-1">Activity Type</label>
-                    <select
-                      value={actType}
-                      onChange={(e: any) => setActType(e.target.value)}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 outline-none focus:border-amber-500 font-medium text-xs"
-                    >
-                      <option value="word_builder">🧩 Word Builder (Letter Scramble)</option>
-                      <option value="fill_in_blank">⌨️ Typing Challenge (Fill in the Blank)</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-1">XP Points Reward</label>
-                    <input
-                      type="number"
-                      value={actPoints}
-                      onChange={(e) => setActPoints(e.target.value)}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 outline-none focus:border-amber-500 font-medium text-xs"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">Activity Title</label>
-                  <input
-                    type="text"
-                    placeholder={actType === 'word_builder' ? 'e.g. Build the Greeting Word' : 'e.g. Complete the Polite Sentence'}
-                    value={actTitle}
-                    onChange={(e) => setActTitle(e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 outline-none focus:border-amber-500 font-medium text-xs"
-                    required
-                  />
-                </div>
-
-                {actType === 'word_builder' && (
-                  <div className="p-5 bg-slate-50 rounded-2xl border border-indigo-500/20 space-y-4">
-                    <span className="text-xs font-black text-indigo-600 uppercase tracking-wider block">
-                      🧩 Word Builder Settings (Auto-scrambles letters for students)
-                    </span>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs font-bold text-slate-500 mb-1">Target Word (e.g. MORNING)</label>
-                        <input
-                          type="text"
-                          placeholder="MORNING"
-                          value={wbTargetWord}
-                          onChange={(e) => setWbTargetWord(e.target.value)}
-                          className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-900 font-mono uppercase font-bold outline-none focus:border-indigo-500 text-sm"
-                          required
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-bold text-slate-500 mb-1">Clue / Meaning</label>
-                        <input
-                          type="text"
-                          placeholder="The early part of the day before noon"
-                          value={wbClue}
-                          onChange={(e) => setWbClue(e.target.value)}
-                          className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-900 outline-none focus:border-indigo-500 text-xs font-medium"
-                          required
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {actType === 'fill_in_blank' && (
-                  <div className="p-5 bg-slate-50 rounded-2xl border border-amber-500/20 space-y-4">
-                    <span className="text-xs font-black text-amber-600 uppercase tracking-wider block">
-                      ⌨️ Typing Challenge Settings (3 attempts allowed with auto-fail)
-                    </span>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-500 mb-1">Sentence with blank (Use '___' for blank space)</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Good ___ teacher, nice to see you!"
-                        value={actSentence}
-                        onChange={(e) => setActSentence(e.target.value)}
-                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-900 outline-none focus:border-amber-500 text-xs font-medium"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-500 mb-1">Acceptable Answer(s) (comma-separated)</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. morning, Morning"
-                        value={actAnswer}
-                        onChange={(e) => setActAnswer(e.target.value)}
-                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-900 outline-none focus:border-amber-500 text-xs font-medium"
-                        required
-                      />
-                    </div>
-                  </div>
-                )}
-
-                <button
-                  type="submit"
-                  className={`w-full text-white font-black py-4 rounded-xl transition shadow-lg text-sm ${
-                    editingActivityId ? 'bg-indigo-600 hover:bg-indigo-500' : 'bg-gradient-to-r from-amber-600 to-indigo-600 hover:from-amber-500 hover:to-indigo-500'
-                  }`}
-                >
-                  {editingActivityId ? 'Update Activity Changes' : 'Deploy Interactive Activity to Lesson'}
-                </button>
+                <button type="submit" className="md:col-span-3 py-3.5 bg-amber-600 hover:bg-amber-500 text-white font-black rounded-xl transition">Deploy Activity (+8 XP)</button>
               </form>
             </div>
 
-            {/* Activities List Below */}
             <div className="bg-white border border-slate-200 rounded-3xl p-6 space-y-4 shadow-sm">
               <h3 className="font-bold text-base text-slate-900">All Deployed Wordwall Activities ({activitiesList.length})</h3>
               <div className="space-y-3">
@@ -1810,119 +1990,33 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* TAB: QUIZZES */}
         {activeTab === 'quizzes' && (
           <div className="space-y-6">
             <div className="bg-white border border-slate-200 p-6 rounded-3xl space-y-4 shadow-sm">
-              <div className="flex justify-between items-center">
-                <h2 className="text-lg font-black flex items-center gap-2 text-slate-900">
-                  <HelpCircle className="w-5 h-5 text-cyan-600" /> {editingQuizId ? 'Edit Quiz Question' : 'Create Multiple-Choice Quiz Question'}
-                </h2>
-                {editingQuizId && (
-                  <button
-                    onClick={() => {
-                      setEditingQuizId(null);
-                      setQuizQuestion('');
-                      setOptA('');
-                      setOptB('');
-                      setOptC('');
-                      setOptD('');
-                    }}
-                    className="text-xs font-bold px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-xl"
-                  >
-                    Cancel Edit
-                  </button>
-                )}
-              </div>
-
+              <h2 className="text-xl font-black text-slate-900 flex items-center gap-2">
+                <HelpCircle className="w-5 h-5 text-cyan-600" /> Multiple Choice Quiz Creator
+              </h2>
               <form onSubmit={handleCreateQuiz} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">Select Lesson</label>
-                  <select
-                    value={quizLessonId}
-                    onChange={(e) => setQuizLessonId(e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 outline-none focus:border-cyan-500 font-medium"
-                    required
-                  >
-                    {lessonsList.map(l => (
-                      <option key={l.id} value={l.id}>Grade {l.grade} - Lesson {l.lesson_number}: {l.title}</option>
-                    ))}
-                  </select>
+                <select value={quizLessonId} onChange={(e) => setQuizLessonId(e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold">
+                  {lessonsList.map(l => <option key={l.id} value={l.id}>Grade {l.grade} - Lesson {l.lesson_number}: {l.title}</option>)}
+                </select>
+                <input type="text" value={quizQuestion} onChange={(e) => setQuizQuestion(e.target.value)} placeholder="Question Prompt" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold" required />
+                <div className="grid grid-cols-2 gap-4">
+                  <input type="text" value={optA} onChange={(e) => setOptA(e.target.value)} placeholder="Option A" className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium" required />
+                  <input type="text" value={optB} onChange={(e) => setOptB(e.target.value)} placeholder="Option B" className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium" required />
+                  <input type="text" value={optC} onChange={(e) => setOptC(e.target.value)} placeholder="Option C" className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium" required />
+                  <input type="text" value={optD} onChange={(e) => setOptD(e.target.value)} placeholder="Option D" className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium" required />
                 </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">Question Prompt</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. What is the correct response to 'How are you?'"
-                    value={quizQuestion}
-                    onChange={(e) => setQuizQuestion(e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 outline-none focus:border-cyan-500 font-medium"
-                    required
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <input
-                    type="text"
-                    placeholder="Option A"
-                    value={optA}
-                    onChange={(e) => setOptA(e.target.value)}
-                    className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 outline-none font-medium"
-                    required
-                  />
-                  <input
-                    type="text"
-                    placeholder="Option B"
-                    value={optB}
-                    onChange={(e) => setOptB(e.target.value)}
-                    className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 outline-none font-medium"
-                    required
-                  />
-                  <input
-                    type="text"
-                    placeholder="Option C"
-                    value={optC}
-                    onChange={(e) => setOptC(e.target.value)}
-                    className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 outline-none font-medium"
-                    required
-                  />
-                  <input
-                    type="text"
-                    placeholder="Option D"
-                    value={optD}
-                    onChange={(e) => setOptD(e.target.value)}
-                    className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 outline-none font-medium"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">Correct Answer</label>
-                  <select
-                    value={correctOptIndex}
-                    onChange={(e) => setCorrectOptIndex(e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 outline-none focus:border-cyan-500 font-medium"
-                  >
-                    <option value="0">Option A</option>
-                    <option value="1">Option B</option>
-                    <option value="2">Option C</option>
-                    <option value="3">Option D</option>
-                  </select>
-                </div>
-
-                <button
-                  type="submit"
-                  className={`w-full text-white font-black py-4 rounded-xl transition shadow-lg ${
-                    editingQuizId ? 'bg-indigo-600 hover:bg-indigo-500' : 'bg-cyan-600 hover:bg-cyan-500'
-                  }`}
-                >
-                  {editingQuizId ? 'Update Quiz Question' : 'Save Quiz Question'}
-                </button>
+                <select value={correctOptIndex} onChange={(e) => setCorrectOptIndex(e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold">
+                  <option value="0">Correct: Option A</option>
+                  <option value="1">Correct: Option B</option>
+                  <option value="2">Correct: Option C</option>
+                  <option value="3">Correct: Option D</option>
+                </select>
+                <button type="submit" className="w-full py-3.5 bg-cyan-600 hover:bg-cyan-500 text-white font-black rounded-xl transition">Save Quiz Question (+8 XP)</button>
               </form>
             </div>
 
-            {/* Quizzes List Below */}
             <div className="bg-white border border-slate-200 rounded-3xl p-6 space-y-4 shadow-sm">
               <h3 className="font-bold text-base text-slate-900">All Quiz Questions ({quizzesList.length})</h3>
               <div className="space-y-3">
