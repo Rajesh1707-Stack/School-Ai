@@ -31,10 +31,10 @@ export default function StudentDashboard() {
   const [activeTab, setActiveTab] = useState<'lessons' | 'leaderboard' | 'progress' | 'badges'>('lessons');
   const [selectedPracticeLesson, setSelectedPracticeLesson] = useState<any | null>(null);
 
-  // Active Lesson Step-by-Step Flow
+  // Active Lesson Step-by-Step Flow (Skipping repeat drills as requested)
   const [activeLesson, setActiveLesson] = useState<any | null>(null);
   const [lessonStep, setLessonStep] = useState<
-    'objectives' | 'vocab' | 'sentences' | 'conversation' | 'repeat' | 
+    'objectives' | 'vocab' | 'sentences' | 'conversation' | 
     'word_builder' | 'activities' | 'quiz' | 'speech' | 'challenge' | 'completed'
   >('objectives');
 
@@ -550,7 +550,7 @@ export default function StudentDashboard() {
           </div>
         )}
 
-        {/* VIEW 2: CLASS LEADERBOARD (RANKED BY POINTS & LOW MISTAKES) */}
+        {/* VIEW 2: CLASS LEADERBOARD */}
         {!activeLesson && activeTab === 'leaderboard' && (
           <div className="space-y-6">
             <ClassLeaderboard
@@ -607,7 +607,6 @@ export default function StudentDashboard() {
               )}
             </div>
 
-            {/* Past Speech Submissions List */}
             <div className="space-y-3">
               <h3 className="text-lg font-bold text-white">Speech Evaluations Log ({speechHistory.length})</h3>
               {speechHistory.length === 0 ? (
@@ -693,10 +692,9 @@ export default function StudentDashboard() {
           </div>
         )}
 
-        {/* ACTIVE LESSON STEP FLOW */}
+        {/* ACTIVE LESSON STEP FLOW (WITHOUT REPEAT DRILLS) */}
         {activeLesson && (
           <div className="space-y-6">
-            {/* Live Progress Bar with Mistakes Tracker */}
             <div className="flex justify-between items-center bg-slate-900 p-4 rounded-2xl border border-slate-800 shadow-md">
               <button
                 onClick={() => setActiveLesson(null)}
@@ -781,7 +779,6 @@ export default function StudentDashboard() {
                 </div>
 
                 <div className={`grid grid-cols-1 ${activeLesson.image_url ? 'md:grid-cols-12 gap-6' : ''}`}>
-                  {/* Left Column: Family Illustration */}
                   {activeLesson.image_url && (
                     <div className="md:col-span-5 flex flex-col items-center justify-center p-4 bg-slate-950 rounded-3xl border border-slate-800 shadow-inner">
                       <div className="relative w-full flex justify-center">
@@ -797,7 +794,6 @@ export default function StudentDashboard() {
                     </div>
                   )}
 
-                  {/* Right Column: Sentences List */}
                   <div className={`${activeLesson.image_url ? 'md:col-span-7' : 'w-full'} space-y-2.5 max-h-[380px] overflow-y-auto pr-1`}>
                     {safeSentencesList.map((text: string, i: number) => (
                       <div key={i} className="p-3.5 bg-slate-950 rounded-2xl border border-slate-800 flex items-center justify-between">
@@ -814,7 +810,7 @@ export default function StudentDashboard() {
                 </div>
 
                 <button
-                  onClick={() => setLessonStep(safeDialogueList.length > 0 ? 'conversation' : 'repeat')}
+                  onClick={() => setLessonStep(safeDialogueList.length > 0 ? 'conversation' : 'word_builder')}
                   className="w-full py-4 bg-gradient-to-r from-pink-600 to-purple-600 text-white font-black rounded-2xl transition shadow-lg flex items-center justify-center gap-2"
                 >
                   Continue to Conversation <ArrowRight className="w-5 h-5" />
@@ -832,7 +828,6 @@ export default function StudentDashboard() {
                 </div>
 
                 <div className={`grid grid-cols-1 ${activeLesson.image_url ? 'md:grid-cols-12 gap-6' : ''}`}>
-                  {/* Left Column: Family Illustration */}
                   {activeLesson.image_url && (
                     <div className="md:col-span-5 flex flex-col items-center justify-center p-4 bg-slate-950 rounded-3xl border border-slate-800 shadow-inner">
                       <div className="relative w-full flex justify-center">
@@ -848,7 +843,6 @@ export default function StudentDashboard() {
                     </div>
                   )}
 
-                  {/* Right Column: Dialogue Bubbles */}
                   <div className={`${activeLesson.image_url ? 'md:col-span-7' : 'w-full'} space-y-3 max-h-[380px] overflow-y-auto pr-1`}>
                     {safeDialogueList.map((item, idx) => {
                       const isLeft = idx % 2 === 0;
@@ -872,32 +866,6 @@ export default function StudentDashboard() {
                 </div>
 
                 <button
-                  onClick={() => setLessonStep('repeat')}
-                  className="w-full py-4 bg-gradient-to-r from-pink-600 to-purple-600 text-white font-black rounded-2xl transition shadow-lg flex items-center justify-center gap-2"
-                >
-                  Practice Repeat Drills <ArrowRight className="w-5 h-5" />
-                </button>
-              </div>
-            )}
-
-            {/* STEP 5: REPEAT DRILLS */}
-            {lessonStep === 'repeat' && (
-              <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl space-y-6 max-w-xl mx-auto shadow-2xl">
-                <div className="text-center space-y-1">
-                  <span className="text-xs font-black text-pink-400 uppercase tracking-wider">Module 5</span>
-                  <h2 className="text-2xl font-black text-white">Listen & Repeat</h2>
-                </div>
-                <div className="space-y-3">
-                  {Array.isArray(activeLesson.repeat_sentences) && activeLesson.repeat_sentences.map((r: string, i: number) => (
-                    <div key={i} className="p-4 bg-slate-950 rounded-2xl border border-slate-800 flex items-center justify-between">
-                      <span className="text-sm font-bold text-indigo-300">{r}</span>
-                      <button onClick={() => speakText(r)} className="p-2.5 bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white rounded-xl transition shrink-0">
-                        <Volume2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-                <button
                   onClick={() => setLessonStep('word_builder')}
                   className="w-full py-4 bg-gradient-to-r from-pink-600 to-purple-600 text-white font-black rounded-2xl transition shadow-lg flex items-center justify-center gap-2"
                 >
@@ -906,7 +874,7 @@ export default function StudentDashboard() {
               </div>
             )}
 
-            {/* STEP 6: WORD BUILDER WITH ATTEMPT DEDUCTIONS */}
+            {/* STEP 5: WORD BUILDER */}
             {lessonStep === 'word_builder' && (
               <div className="space-y-4">
                 <WordBuilder
@@ -922,7 +890,7 @@ export default function StudentDashboard() {
               </div>
             )}
 
-            {/* STEP 7: TYPING ACTIVITIES WITH ATTEMPT DEDUCTIONS */}
+            {/* STEP 6: TYPING ACTIVITIES */}
             {lessonStep === 'activities' && typingActivities.length > 0 && (
               <div className="space-y-4">
                 <TypingActivity
@@ -935,7 +903,7 @@ export default function StudentDashboard() {
               </div>
             )}
 
-            {/* STEP 8: MCQ QUIZZES */}
+            {/* STEP 7: MCQ QUIZZES */}
             {lessonStep === 'quiz' && quizzes.length > 0 && (
               <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl space-y-6 max-w-xl mx-auto shadow-2xl">
                 <div className="flex justify-between items-center">
@@ -980,7 +948,7 @@ export default function StudentDashboard() {
               </div>
             )}
 
-            {/* STEP 9: AI SPEECH RECORDING */}
+            {/* STEP 8: AI SPEECH RECORDING */}
             {lessonStep === 'speech' && (
               <div className="space-y-4">
                 <SpeechAnalyzer
@@ -993,7 +961,7 @@ export default function StudentDashboard() {
               </div>
             )}
 
-            {/* STEP 10: BONUS CHALLENGE */}
+            {/* STEP 9: BONUS CHALLENGE */}
             {lessonStep === 'challenge' && (
               <div className="space-y-4">
                 <div className="text-center space-y-1 mb-2">
@@ -1010,7 +978,7 @@ export default function StudentDashboard() {
               </div>
             )}
 
-            {/* STEP 11: CELEBRATION */}
+            {/* STEP 10: CELEBRATION */}
             {lessonStep === 'completed' && (
               <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl text-center space-y-6 max-w-md mx-auto shadow-2xl">
                 <div className="inline-flex p-4 bg-emerald-500/20 text-emerald-400 rounded-3xl">

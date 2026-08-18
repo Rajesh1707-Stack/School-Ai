@@ -7,20 +7,19 @@ import {
   Users, UserCheck, Clock, Award, BookOpen, LogOut, Check, X, 
   Sparkles, Mic, Play, ChevronRight, UserPlus, Search, ArrowLeft,
   Calendar, CheckCircle2, AlertCircle, ShieldAlert, Star, Volume2,
-  Filter, Trophy, Flame, Zap, RotateCcw, Info, ImageIcon
+  Filter, Trophy, Flame, Zap, RotateCcw, Info, ImageIcon, Video
 } from 'lucide-react';
 import SpeechAnalyzer from '@/components/speech/SpeechAnalyzer';
 import ClassLeaderboard from '@/components/dashboard/ClassLeaderboard';
+import confetti from 'canvas-confetti';
 
 export default function TeacherDashboard() {
   const [profile, setProfile] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'attendance' | 'grades' | 'leaderboard' | 'lessons' | 'speech' | 'create_student'>('lessons');
+  const [activeTab, setActiveTab] = useState<'attendance' | 'grades' | 'leaderboard' | 'lessons' | 'speech' | 'assess_student' | 'create_student'>('lessons');
 
-  // Dynamic Grade and Section Selector for Multi-Class Access
   const [selectedGrade, setSelectedGrade] = useState('1');
   const [selectedSection, setSelectedSection] = useState('A');
 
-  // Data Stores
   const [allSchoolStudents, setAllSchoolStudents] = useState<any[]>([]);
   const [gradeLessons, setGradeLessons] = useState<any[]>([]);
   const [speechLogs, setSpeechLogs] = useState<any[]>([]);
@@ -38,9 +37,15 @@ export default function TeacherDashboard() {
   const [attendanceDate, setAttendanceDate] = useState(new Date().toISOString().split('T')[0]);
   const [attendanceMap, setAttendanceMap] = useState<{ [studentId: string]: 'present' | 'absent' | 'late' }>({});
 
-  // Classroom Teaching Presentation Mode
+  // Classroom Teaching Presentation Mode (Without Repeat Drills)
   const [activeTeachingLesson, setActiveTeachingLesson] = useState<any | null>(null);
-  const [lessonActiveSection, setLessonActiveSection] = useState<'objectives' | 'vocab' | 'sentences' | 'conversation' | 'repeat' | 'speech'>('objectives');
+  const [lessonActiveSection, setLessonActiveSection] = useState<'video' | 'objectives' | 'vocab' | 'sentences' | 'conversation' | 'speech'>('video');
+
+  // Teacher-Led Student Assessment State
+  const [assessmentStudentId, setAssessmentStudentId] = useState('');
+  const [assessmentLessonId, setAssessmentLessonId] = useState('');
+  const [assessmentScore, setAssessmentScore] = useState('85');
+  const [assessmentXP, setAssessmentXP] = useState('50');
 
   // Speech Review Drill-Down
   const [selectedStudentSpeech, setSelectedStudentSpeech] = useState<any | null>(null);
@@ -65,26 +70,6 @@ export default function TeacherDashboard() {
     if (profile?.school_id) {
       fetchClassData(profile.school_id, selectedGrade, selectedSection);
     }
-  }, [selectedGrade, selectedSection, profile]);
-
-  // Realtime subscription to reflect Admin updates dynamically
-  useEffect(() => {
-    const channel = supabase
-      .channel('teacher-lessons-realtime')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'lessons' },
-        () => {
-          if (profile?.school_id) {
-            fetchClassData(profile.school_id, selectedGrade, selectedSection);
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, [selectedGrade, selectedSection, profile]);
 
   const fetchTeacherInitialData = async () => {
@@ -151,6 +136,7 @@ export default function TeacherDashboard() {
       const initialMap: { [key: string]: 'present' | 'absent' | 'late' } = {};
       stuData.forEach(s => { initialMap[s.id] = 'present'; });
       setAttendanceMap(initialMap);
+      if (stuData.length > 0 && !assessmentStudentId) setAssessmentStudentId(stuData[0].id);
     }
 
     const { data: lData } = await supabase
@@ -163,10 +149,7 @@ export default function TeacherDashboard() {
       setGradeLessons(lData);
       if (lData.length > 0) {
         setSelectedDemoLesson(lData[0]);
-        if (activeTeachingLesson) {
-          const updatedActive = lData.find(l => l.id === activeTeachingLesson.id);
-          if (updatedActive) setActiveTeachingLesson(updatedActive);
-        }
+        if (!assessmentLessonId) setAssessmentLessonId(lData[0].id);
       }
     }
 
@@ -216,7 +199,7 @@ export default function TeacherDashboard() {
         } else {
           setIsClockedIn(false);
           setClockInTime(null);
-          setStatusMsg('Clocked out successfully! Working duration recorded.');
+          setStatusMsg('Clocked out successfully!');
         }
         fetchAttendanceHistory(profile.id);
         setTimeout(() => setStatusMsg(''), 3000);
@@ -246,6 +229,32 @@ export default function TeacherDashboard() {
     } else {
       alert(error.message);
     }
+  };
+
+  const handleTeacherRecordAssessment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!assessmentStudentId || !assessmentLessonId) return;
+
+    setStatusMsg('Recording student assessment marks...');
+
+    const scoreNum = parseInt(assessmentScore) || 85;
+    const xpNum = parseInt(assessmentXP) || 50;
+
+    await supabase.rpc('record_lesson_submission', {
+      p_student_id: assessmentStudentId,
+      p_lesson_id: assessmentLessonId,
+      p_word_builder_score: scoreNum,
+      p_typing_score: scoreNum,
+      p_quiz_score: scoreNum,
+      p_speech_score: scoreNum,
+      p_total_mistakes: 0,
+      p_earned_xp: xpNum,
+    });
+
+    confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+    setStatusMsg('Successfully recorded student assessment and awarded XP!');
+    fetchClassData(profile.school_id, selectedGrade, selectedSection);
+    setTimeout(() => setStatusMsg(''), 3500);
   };
 
   const handleEnrollStudent = async (e: React.FormEvent) => {
@@ -311,10 +320,10 @@ export default function TeacherDashboard() {
           </div>
           <div>
             <h1 className="text-xl font-black text-white flex items-center gap-2">
-              {profile?.full_name} <span className="text-xs px-2 py-0.5 bg-indigo-500/20 text-indigo-300 rounded-full border border-indigo-500/30">Teacher Hub</span>
+              {profile?.full_name} <span className="text-xs px-2 py-0.5 bg-indigo-500/20 text-indigo-300 rounded-full border border-indigo-500/30">Smart Class Teacher Hub</span>
             </h1>
             <p className="text-xs text-slate-400 font-semibold">
-              {profile?.schools?.name} • All Grades & Sections Access
+              {profile?.schools?.name} • Multi-Class Management
             </p>
           </div>
         </div>
@@ -386,11 +395,12 @@ export default function TeacherDashboard() {
         {/* Global Navigation Tabs */}
         <div className="flex flex-wrap gap-2 p-1.5 bg-slate-900 rounded-2xl border border-slate-800">
           {[
-            { id: 'lessons', label: `📚 Grade ${selectedGrade} Lessons (${gradeLessons.length})`, icon: BookOpen },
-            { id: 'grades', label: `🎓 Grade ${selectedGrade}-${selectedSection} Roster (${allSchoolStudents.length})`, icon: Users },
-            { id: 'leaderboard', label: '🏆 Classroom Toppers', icon: Trophy },
-            { id: 'speech', label: `🎤 Speech Evaluations (${speechLogs.length})`, icon: Mic },
-            { id: 'attendance', label: '📅 My Attendance Log', icon: Clock },
+            { id: 'lessons', label: `📚 Smart Class Lessons (${gradeLessons.length})`, icon: BookOpen },
+            { id: 'assess_student', label: '🎓 Live Student Assessment & Marking', icon: Award },
+            { id: 'grades', label: `🎓 Attendance (${allSchoolStudents.length})`, icon: Users },
+            { id: 'leaderboard', label: '🏆 Class Toppers', icon: Trophy },
+            { id: 'speech', label: `🎤 Speech Logs (${speechLogs.length})`, icon: Mic },
+            { id: 'attendance', label: '📅 My Attendance', icon: Clock },
             { id: 'create_student', label: '➕ Enroll Student', icon: UserPlus },
           ].map(tab => (
             <button
@@ -400,7 +410,7 @@ export default function TeacherDashboard() {
                 setActiveTeachingLesson(null);
                 setSelectedStudentSpeech(null);
               }}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition ${
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition ${
                 activeTab === tab.id ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30' : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
               }`}
             >
@@ -409,12 +419,12 @@ export default function TeacherDashboard() {
           ))}
         </div>
 
-        {/* TAB 1: LESSONS & CLASSROOM CONDUCTOR */}
+        {/* TAB 1: SMART CLASS LESSONS */}
         {activeTab === 'lessons' && !activeTeachingLesson && (
           <div className="space-y-6">
             <div className="text-center max-w-xl mx-auto space-y-1">
-              <h2 className="text-2xl font-black text-white">Grade {selectedGrade} Master Lessons</h2>
-              <p className="text-slate-400 text-xs">Launch interactive classroom presentations with live teacher guide and voice drills.</p>
+              <h2 className="text-2xl font-black text-white">Smart Class Grade {selectedGrade} Lessons</h2>
+              <p className="text-slate-400 text-xs">Play topic videos and guide students through interactive discussions on the smart board.</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -423,7 +433,7 @@ export default function TeacherDashboard() {
                   key={l.id}
                   onClick={() => {
                     setActiveTeachingLesson(l);
-                    setLessonActiveSection('objectives');
+                    setLessonActiveSection(l.video_url ? 'video' : 'objectives');
                   }}
                   className="bg-slate-900 border border-slate-800 hover:border-indigo-500/50 p-6 rounded-3xl cursor-pointer transition shadow-lg space-y-3"
                 >
@@ -431,16 +441,22 @@ export default function TeacherDashboard() {
                     <span className="px-3 py-1 bg-indigo-500/20 text-indigo-300 font-black text-xs rounded-full border border-indigo-500/30">
                       LESSON {l.lesson_number}
                     </span>
-                    <Star className="w-5 h-5 text-amber-400 fill-amber-400" />
+                    {l.video_url ? (
+                      <span className="flex items-center gap-1 text-[11px] font-bold text-indigo-400 bg-indigo-500/10 px-2.5 py-0.5 rounded-lg border border-indigo-500/20">
+                        <Video className="w-3.5 h-3.5" /> Video Ready
+                      </span>
+                    ) : (
+                      <Star className="w-5 h-5 text-amber-400 fill-amber-400" />
+                    )}
                   </div>
                   <h3 className="text-lg font-bold text-white">{l.title}</h3>
-                  <p className="text-xs text-slate-400 italic line-clamp-2">"{l.speaking_prompt}"</p>
+                  <p className="text-xs text-slate-400 line-clamp-2">{l.description}</p>
                   <div className="flex justify-between items-center pt-2 border-t border-slate-800/80">
                     <span className="text-xs font-bold text-emerald-400 flex items-center gap-1">
-                      <CheckCircle2 className="w-4 h-4" /> Ready to Teach
+                      <CheckCircle2 className="w-4 h-4" /> Smart Class Mode
                     </span>
                     <span className="text-xs font-bold text-indigo-400 flex items-center gap-1">
-                      Launch Class <ChevronRight className="w-4 h-4" />
+                      Launch Presentation <ChevronRight className="w-4 h-4" />
                     </span>
                   </div>
                 </div>
@@ -449,7 +465,7 @@ export default function TeacherDashboard() {
           </div>
         )}
 
-        {/* TEACHING DISPLAY WITH INTEGRATED FULL-PROPORTION PICTURE */}
+        {/* SMART CLASS PRESENTATION MODE */}
         {activeTab === 'lessons' && activeTeachingLesson && (
           <div className="space-y-6 animate-in fade-in">
             <div className="flex justify-between items-center">
@@ -457,12 +473,12 @@ export default function TeacherDashboard() {
                 onClick={() => setActiveTeachingLesson(null)}
                 className="flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-white bg-slate-900 px-4 py-2 rounded-xl border border-slate-800"
               >
-                <ArrowLeft className="w-4 h-4" /> Exit Teaching Mode
+                <ArrowLeft className="w-4 h-4" /> Exit Smart Class
               </button>
 
               <button
                 onClick={() => {
-                  setStatusMsg(`Marked Lesson ${activeTeachingLesson.lesson_number} as COMPLETED for Section ${selectedSection}!`);
+                  setStatusMsg(`Marked Lesson ${activeTeachingLesson.lesson_number} as completed for Section ${selectedSection}!`);
                   setTimeout(() => setStatusMsg(''), 3000);
                 }}
                 className="flex items-center gap-2 px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-xl text-xs uppercase tracking-wider transition shadow-lg"
@@ -479,15 +495,15 @@ export default function TeacherDashboard() {
               <p className="text-slate-400 text-xs mt-1">{activeTeachingLesson.description}</p>
             </div>
 
-            {/* Sub-Section Navigation Tabs */}
+            {/* Presentation Sub-Tabs */}
             <div className="flex flex-wrap gap-2 p-1.5 bg-slate-900 rounded-2xl border border-slate-800">
               {[
+                { id: 'video', label: '🎬 0. Topic Video' },
                 { id: 'objectives', label: '🎯 1. Objectives' },
                 { id: 'vocab', label: '📖 2. Vocabulary' },
                 { id: 'sentences', label: '💬 3. Useful Sentences' },
                 { id: 'conversation', label: '👥 4. Pair Dialogue' },
-                { id: 'repeat', label: '🗣️ 5. Repeat Drill' },
-                { id: 'speech', label: '🎤 9. Speaking Conductor' },
+                { id: 'speech', label: '🎤 Speaking Conductor' },
               ].map(sec => (
                 <button
                   key={sec.id}
@@ -501,17 +517,34 @@ export default function TeacherDashboard() {
               ))}
             </div>
 
-            {/* Sub-Section Content Panes */}
             <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl min-h-[350px] shadow-xl">
+              {/* SECTION 0: VIDEO STREAM */}
+              {lessonActiveSection === 'video' && (
+                <div className="space-y-4 text-center">
+                  <h3 className="text-xl font-bold text-white mb-2">Smart Class Topic Video Stream</h3>
+                  {activeTeachingLesson.video_url ? (
+                    <div className="aspect-video w-full max-w-3xl mx-auto rounded-3xl overflow-hidden border border-slate-800 shadow-2xl bg-black">
+                      <iframe
+                        src={activeTeachingLesson.video_url}
+                        title="Lesson Video"
+                        className="w-full h-full"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      />
+                    </div>
+                  ) : (
+                    <div className="p-12 bg-slate-950 rounded-3xl border border-slate-800 text-slate-500 space-y-3">
+                      <Video className="w-12 h-12 mx-auto opacity-40 text-indigo-400" />
+                      <p className="text-sm font-bold">No video URL has been attached to this lesson yet.</p>
+                      <p className="text-xs text-slate-600">Super Admins can attach YouTube or MP4 video links in the Admin Dashboard under Curriculum Builder.</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* SECTION 1: OBJECTIVES */}
               {lessonActiveSection === 'objectives' && (
                 <div className="space-y-4">
-                  {activeTeachingLesson.teacher_instructions?.objectives && (
-                    <div className="p-4 bg-amber-500/10 border border-amber-500/30 text-amber-300 rounded-2xl text-xs font-bold flex items-center gap-2">
-                      <Info className="w-4 h-4 shrink-0 text-amber-400" /> 
-                      Teacher Instruction: {activeTeachingLesson.teacher_instructions.objectives}
-                    </div>
-                  )}
                   <h3 className="text-xl font-bold text-white">Target Learning Objectives</h3>
                   <div className="space-y-2">
                     {Array.isArray(activeTeachingLesson.learning_objectives) && activeTeachingLesson.learning_objectives.map((obj: string, i: number) => (
@@ -526,12 +559,6 @@ export default function TeacherDashboard() {
               {/* SECTION 2: VOCABULARY */}
               {lessonActiveSection === 'vocab' && (
                 <div className="space-y-4">
-                  {activeTeachingLesson.teacher_instructions?.vocabulary && (
-                    <div className="p-4 bg-amber-500/10 border border-amber-500/30 text-amber-300 rounded-2xl text-xs font-bold flex items-center gap-2">
-                      <Info className="w-4 h-4 shrink-0 text-amber-400" /> 
-                      Teacher Instruction: {activeTeachingLesson.teacher_instructions.vocabulary}
-                    </div>
-                  )}
                   <h3 className="text-xl font-bold text-white">Vocabulary Words (Click speaker to pronounce)</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {Array.isArray(activeTeachingLesson.vocabulary) && activeTeachingLesson.vocabulary.map((v: any, i: number) => {
@@ -556,43 +583,23 @@ export default function TeacherDashboard() {
                 </div>
               )}
 
-              {/* SECTION 3: USEFUL SENTENCES WITH SIDE-BY-SIDE DUAL COLUMN */}
+              {/* SECTION 3: USEFUL SENTENCES */}
               {lessonActiveSection === 'sentences' && (
                 <div className="space-y-4">
-                  {activeTeachingLesson.teacher_instructions?.phrases && (
-                    <div className="p-4 bg-amber-500/10 border border-amber-500/30 text-amber-300 rounded-2xl text-xs font-bold flex items-center gap-2">
-                      <Info className="w-4 h-4 shrink-0 text-amber-400" /> 
-                      Teacher Instruction: {activeTeachingLesson.teacher_instructions.phrases}
-                    </div>
-                  )}
-                  
                   <h3 className="text-xl font-bold text-white">Useful Sentences & Daily Expressions</h3>
-
                   <div className={`grid grid-cols-1 ${activeTeachingLesson.image_url ? 'lg:grid-cols-12 gap-6' : ''}`}>
-                    {/* Left Column: Family Illustration */}
                     {activeTeachingLesson.image_url && (
-                      <div className="lg:col-span-5 flex flex-col items-center justify-center p-4 bg-slate-950 rounded-3xl border border-slate-800 shadow-inner">
-                        <div className="relative w-full flex justify-center">
-                          <img
-                            src={activeTeachingLesson.image_url}
-                            alt="Lesson Reference Visual"
-                            className="max-h-[380px] w-auto rounded-2xl object-contain shadow-md"
-                          />
-                        </div>
-                        <span className="mt-3 text-xs font-bold text-pink-400 bg-pink-500/10 border border-pink-500/20 px-3 py-1 rounded-full">
-                          📸 Classroom Visual Reference
-                        </span>
+                      <div className="lg:col-span-5 flex flex-col items-center justify-center p-4 bg-slate-950 rounded-3xl border border-slate-800">
+                        <img src={activeTeachingLesson.image_url} alt="Visual Guide" className="max-h-[320px] w-auto rounded-2xl object-contain" />
                       </div>
                     )}
-
-                    {/* Right Column: Interactive Sentences List */}
-                    <div className={`${activeTeachingLesson.image_url ? 'lg:col-span-7' : 'w-full'} space-y-2.5 max-h-[420px] overflow-y-auto pr-1`}>
+                    <div className={`${activeTeachingLesson.image_url ? 'lg:col-span-7' : 'w-full'} space-y-2.5 max-h-[380px] overflow-y-auto pr-1`}>
                       {Array.isArray(activeTeachingLesson.useful_sentences) && activeTeachingLesson.useful_sentences.map((s: any, i: number) => {
                         const text = s.sentence || s;
                         return (
                           <div key={i} className="p-3.5 bg-slate-950 rounded-2xl border border-slate-800 flex items-center justify-between text-sm font-semibold text-slate-200">
-                            <span className="pr-2">"{text}"</span>
-                            <button onClick={() => speakText(text)} className="p-2 bg-indigo-600/20 text-indigo-300 hover:bg-indigo-600 hover:text-white rounded-lg shrink-0 transition">
+                            <span>"{text}"</span>
+                            <button onClick={() => speakText(text)} className="p-2 bg-indigo-600/20 text-indigo-300 hover:bg-indigo-600 hover:text-white rounded-lg">
                               <Volume2 className="w-4 h-4" />
                             </button>
                           </div>
@@ -603,92 +610,48 @@ export default function TeacherDashboard() {
                 </div>
               )}
 
-              {/* SECTION 4: CONVERSATION DIALOGUE WITH SIDE-BY-SIDE DUAL COLUMN */}
+              {/* SECTION 4: CONVERSATION DIALOGUE */}
               {lessonActiveSection === 'conversation' && (
                 <div className="space-y-4">
-                  {activeTeachingLesson.teacher_instructions?.conversation && (
-                    <div className="p-4 bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 rounded-2xl text-xs font-bold flex items-center gap-2">
-                      <Users className="w-4 h-4 shrink-0 text-indigo-400" /> 
-                      Teacher Instruction: {activeTeachingLesson.teacher_instructions.conversation}
-                    </div>
-                  )}
-
-                  <h3 className="text-xl font-bold text-white">In-Class Pair Conversation (Call 2 Students)</h3>
-
+                  <h3 className="text-xl font-bold text-white">In-Class Pair Conversation</h3>
                   <div className={`grid grid-cols-1 ${activeTeachingLesson.image_url ? 'lg:grid-cols-12 gap-6' : ''}`}>
-                    {/* Left Column: Family Illustration */}
                     {activeTeachingLesson.image_url && (
-                      <div className="lg:col-span-5 flex flex-col items-center justify-center p-4 bg-slate-950 rounded-3xl border border-slate-800 shadow-inner">
-                        <div className="relative w-full flex justify-center">
-                          <img
-                            src={activeTeachingLesson.image_url}
-                            alt="Dialogue Character Visual"
-                            className="max-h-[380px] w-auto rounded-2xl object-contain shadow-md"
-                          />
-                        </div>
-                        <span className="mt-3 text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full">
-                          👥 Point to Peter, Sister, Father & Mother
-                        </span>
+                      <div className="lg:col-span-5 flex flex-col items-center justify-center p-4 bg-slate-950 rounded-3xl border border-slate-800">
+                        <img src={activeTeachingLesson.image_url} alt="Dialogue Visual" className="max-h-[320px] w-auto rounded-2xl object-contain" />
                       </div>
                     )}
-
-                    {/* Right Column: Dialogue Bubbles */}
-                    <div className={`${activeTeachingLesson.image_url ? 'lg:col-span-7' : 'w-full'} space-y-3 max-h-[420px] overflow-y-auto pr-1`}>
+                    <div className={`${activeTeachingLesson.image_url ? 'lg:col-span-7' : 'w-full'} space-y-3 max-h-[380px] overflow-y-auto pr-1`}>
                       {(() => {
                         let dialogueList: { speaker: string; line: string }[] = [];
-
                         if (Array.isArray(activeTeachingLesson.conversation_dialogue)) {
                           dialogueList = activeTeachingLesson.conversation_dialogue.map((item: any) => ({
-                            speaker: item.speaker || (typeof item === 'string' ? item.split(':')[0] : 'Speaker'),
-                            line: item.line || (typeof item === 'string' ? item.split(':')[1] || item : JSON.stringify(item))
+                            speaker: item.speaker || 'Speaker',
+                            line: item.line || ''
                           }));
                         } else if (typeof activeTeachingLesson.conversation_dialogue === 'string') {
                           try {
                             const parsed = JSON.parse(activeTeachingLesson.conversation_dialogue);
-                            if (Array.isArray(parsed)) {
-                              dialogueList = parsed.map((item: any) => ({
-                                speaker: item.speaker || 'Speaker',
-                                line: item.line || ''
-                              }));
-                            }
+                            if (Array.isArray(parsed)) dialogueList = parsed;
                           } catch {
-                            dialogueList = activeTeachingLesson.conversation_dialogue
-                              .split('\n')
-                              .filter(Boolean)
-                              .map((line: string) => {
-                                const parts = line.split(':');
-                                return {
-                                  speaker: parts[0]?.trim() || 'Speaker',
-                                  line: parts.slice(1).join(':').trim() || line
-                                };
-                              });
+                            dialogueList = activeTeachingLesson.conversation_dialogue.split('\n').filter(Boolean).map((line: string) => {
+                              const parts = line.split(':');
+                              return { speaker: parts[0]?.trim() || 'Speaker', line: parts.slice(1).join(':').trim() || line };
+                            });
                           }
                         }
 
-                        if (dialogueList.length === 0) {
-                          return <p className="text-xs text-slate-400 italic">No conversation lines configured yet.</p>;
-                        }
-
                         return dialogueList.map((item, idx) => {
-                          const isLeftSpeaker = idx % 2 === 0;
+                          const isLeft = idx % 2 === 0;
                           return (
-                            <div key={idx} className={`flex ${isLeftSpeaker ? 'justify-start' : 'justify-end'}`}>
+                            <div key={idx} className={`flex ${isLeft ? 'justify-start' : 'justify-end'}`}>
                               <div className={`max-w-md p-3.5 rounded-2xl text-sm font-medium flex items-center justify-between gap-4 ${
-                                isLeftSpeaker 
-                                  ? 'bg-indigo-950/80 text-indigo-200 border border-indigo-800/80 rounded-tl-none' 
-                                  : 'bg-emerald-950/80 text-emerald-200 border border-emerald-800/80 rounded-tr-none'
+                                isLeft ? 'bg-indigo-950/80 text-indigo-200 border border-indigo-800 rounded-tl-none' : 'bg-emerald-950/80 text-emerald-200 border border-emerald-800 rounded-tr-none'
                               }`}>
                                 <div>
-                                  <span className="text-[11px] font-black uppercase block opacity-75 mb-0.5 tracking-wider">
-                                    {item.speaker}
-                                  </span>
+                                  <span className="text-[11px] font-black uppercase block opacity-75 mb-0.5">{item.speaker}</span>
                                   <span>{item.line}</span>
                                 </div>
-                                <button 
-                                  onClick={() => speakText(item.line)}
-                                  className="p-1.5 bg-white/10 hover:bg-white/20 text-white rounded-lg shrink-0 transition"
-                                  title="Pronounce Line"
-                                >
+                                <button onClick={() => speakText(item.line)} className="p-1.5 bg-white/10 hover:bg-white/20 text-white rounded-lg">
                                   <Volume2 className="w-4 h-4" />
                                 </button>
                               </div>
@@ -701,48 +664,21 @@ export default function TeacherDashboard() {
                 </div>
               )}
 
-              {/* SECTION 5: REPEAT DRILL */}
-              {lessonActiveSection === 'repeat' && (
-                <div className="space-y-4">
-                  {activeTeachingLesson.teacher_instructions?.drills && (
-                    <div className="p-4 bg-amber-500/10 border border-amber-500/30 text-amber-300 rounded-2xl text-xs font-bold flex items-center gap-2">
-                      <Info className="w-4 h-4 shrink-0 text-amber-400" /> 
-                      Teacher Instruction: {activeTeachingLesson.teacher_instructions.drills}
-                    </div>
-                  )}
-                  <h3 className="text-xl font-bold text-white">Repeat & Fluency Drills</h3>
-                  <div className="space-y-2">
-                    {Array.isArray(activeTeachingLesson.repeat_sentences) && activeTeachingLesson.repeat_sentences.map((r: string, i: number) => (
-                      <div key={i} className="p-4 bg-slate-950 rounded-2xl border border-slate-800 text-sm font-bold text-indigo-300 flex items-center justify-between">
-                        <span className="flex items-center gap-2"><Volume2 className="w-4 h-4 text-indigo-400" /> {r}</span>
-                        <button onClick={() => speakText(r)} className="p-2 bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white rounded-lg">
-                          <Volume2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* SECTION 6: SPEECH EVALUATION CONDUCTOR */}
+              {/* SECTION 6: SPEECH CONDUCTOR */}
               {lessonActiveSection === 'speech' && (
                 <div className="space-y-6">
                   <div className="flex justify-between items-center">
-                    <h3 className="text-xl font-bold text-white">Live Classroom Speaking Challenge</h3>
-                    <button
-                      onClick={() => speakText(activeTeachingLesson.speaking_prompt)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600/20 text-indigo-300 hover:bg-indigo-600 hover:text-white rounded-xl text-xs font-bold transition"
-                    >
+                    <h3 className="text-xl font-bold text-white">Live Classroom Speaking Conductor</h3>
+                    <button onClick={() => speakText(activeTeachingLesson.speaking_prompt)} className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600/20 text-indigo-300 hover:bg-indigo-600 hover:text-white rounded-xl text-xs font-bold transition">
                       <Volume2 className="w-4 h-4" /> Speak Prompt
                     </button>
                   </div>
-
                   <SpeechAnalyzer
                     promptText={activeTeachingLesson.speaking_prompt}
                     isTeacher={true}
                     maxAttempts={-1}
                     onComplete={(result) => {
-                      alert(`Speech Analysis Completed! Overall Score: ${result.overallScore}%, Pronunciation: ${result.pronunciationScore}%, Fluency: ${result.fluencyScore}%`);
+                      alert(`Speech Evaluated! Score: ${result.overallScore}%`);
                     }}
                   />
                 </div>
@@ -751,7 +687,90 @@ export default function TeacherDashboard() {
           </div>
         )}
 
-        {/* TAB 2: ROSTER & ATTENDANCE */}
+        {/* TAB 2: TEACHER-LED STUDENT ASSESSMENT & MARKING */}
+        {activeTab === 'assess_student' && (
+          <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl max-w-2xl mx-auto space-y-6 shadow-2xl">
+            <div className="text-center space-y-1">
+              <span className="px-3 py-1 bg-amber-500/20 text-amber-300 font-black text-xs rounded-full uppercase">
+                🎓 Offline Student Performance Entry
+              </span>
+              <h2 className="text-2xl font-black text-white mt-1">Record Student Activity & Speaking Marks</h2>
+              <p className="text-xs text-slate-400">
+                Call a student to the smart class desk, have them perform the activity, and log their score directly for Grade {selectedGrade}-{selectedSection}.
+              </p>
+            </div>
+
+            <form onSubmit={handleTeacherRecordAssessment} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-400 mb-1">Select Student from Grade {selectedGrade}-{selectedSection}</label>
+                <select
+                  value={assessmentStudentId}
+                  onChange={(e) => setAssessmentStudentId(e.target.value)}
+                  className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white font-bold text-xs outline-none focus:border-indigo-500"
+                  required
+                >
+                  {allSchoolStudents.length === 0 ? (
+                    <option value="">No students in this class</option>
+                  ) : (
+                    allSchoolStudents.map(s => (
+                      <option key={s.id} value={s.id}>{s.full_name} ({s.email})</option>
+                    ))
+                  )}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-400 mb-1">Select Lesson</label>
+                <select
+                  value={assessmentLessonId}
+                  onChange={(e) => setAssessmentLessonId(e.target.value)}
+                  className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white font-bold text-xs outline-none focus:border-indigo-500"
+                  required
+                >
+                  {gradeLessons.map(l => (
+                    <option key={l.id} value={l.id}>Lesson {l.lesson_number}: {l.title}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 mb-1">Performance Accuracy (%)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={assessmentScore}
+                    onChange={(e) => setAssessmentScore(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white font-bold text-xs outline-none"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 mb-1">XP Points Award</label>
+                  <input
+                    type="number"
+                    min="10"
+                    max="200"
+                    value={assessmentXP}
+                    onChange={(e) => setAssessmentXP(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white font-bold text-xs outline-none"
+                    required
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="w-full py-4 bg-gradient-to-r from-amber-500 to-pink-600 hover:from-amber-400 hover:to-pink-500 text-white font-black rounded-2xl transition shadow-lg shadow-amber-500/20"
+              >
+                Submit Performance & Update Leaderboard Rank
+              </button>
+            </form>
+          </div>
+        )}
+
+        {/* OTHER TABS */}
         {activeTab === 'grades' && (
           <div className="space-y-6">
             <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl space-y-4 shadow-lg">
@@ -762,7 +781,6 @@ export default function TeacherDashboard() {
                   </h2>
                   <p className="text-xs text-slate-400">Mark daily attendance statuses</p>
                 </div>
-
                 <div className="flex items-center gap-3">
                   <input
                     type="date"
@@ -770,10 +788,7 @@ export default function TeacherDashboard() {
                     onChange={(e) => setAttendanceDate(e.target.value)}
                     className="px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white font-bold text-xs outline-none"
                   />
-                  <button
-                    onClick={handleSaveStudentAttendance}
-                    className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-xl text-xs uppercase tracking-wider transition shadow-md"
-                  >
+                  <button onClick={handleSaveStudentAttendance} className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-xl text-xs uppercase transition shadow-md">
                     Save Attendance
                   </button>
                 </div>
@@ -781,9 +796,7 @@ export default function TeacherDashboard() {
 
               <div className="divide-y divide-slate-800/80">
                 {allSchoolStudents.length === 0 ? (
-                  <div className="p-6 text-center text-slate-500 text-sm">
-                    No students enrolled in Grade {selectedGrade} - Section {selectedSection}. Click "Enroll Student" to add students.
-                  </div>
+                  <div className="p-6 text-center text-slate-500 text-sm">No students in this class.</div>
                 ) : (
                   allSchoolStudents.map(s => (
                     <div key={s.id} className="py-3 flex justify-between items-center">
@@ -791,7 +804,6 @@ export default function TeacherDashboard() {
                         <div className="font-bold text-white text-sm">{s.full_name}</div>
                         <div className="text-xs text-slate-500 font-mono">{s.email}</div>
                       </div>
-
                       <div className="flex gap-2">
                         {(['present', 'absent', 'late'] as const).map(status => (
                           <button
@@ -799,7 +811,7 @@ export default function TeacherDashboard() {
                             onClick={() => setAttendanceMap(prev => ({ ...prev, [s.id]: status }))}
                             className={`px-3 py-1.5 rounded-xl font-black text-xs capitalize transition ${
                               attendanceMap[s.id] === status
-                                ? status === 'present' ? 'bg-emerald-600 text-white shadow-lg' : status === 'absent' ? 'bg-rose-600 text-white shadow-lg' : 'bg-amber-600 text-white shadow-lg'
+                                ? status === 'present' ? 'bg-emerald-600 text-white shadow-lg' : status === 'absent' ? 'bg-rose-600 text-white' : 'bg-amber-600 text-white'
                                 : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
                             }`}
                           >
@@ -815,18 +827,14 @@ export default function TeacherDashboard() {
           </div>
         )}
 
-        {/* TAB 3: CLASSROOM TOPPERS LEADERBOARD */}
         {activeTab === 'leaderboard' && (
-          <div className="space-y-6">
-            <ClassLeaderboard
-              students={allSchoolStudents}
-              title={`🏆 Grade ${selectedGrade}-${selectedSection} Classroom Toppers`}
-              subtitle={`Automatic rank calculation based on total XP and performance metrics for ${profile?.schools?.name}`}
-            />
-          </div>
+          <ClassLeaderboard
+            students={allSchoolStudents}
+            title={`🏆 Grade ${selectedGrade}-${selectedSection} Classroom Toppers`}
+            subtitle={`Automatic rank calculation based on teacher assessments and XP for ${profile?.schools?.name}`}
+          />
         )}
 
-        {/* TAB 4: SPEECH EVALUATION LOGS & LIVE CLASSROOM TESTER */}
         {activeTab === 'speech' && !selectedStudentSpeech && (
           <div className="space-y-6">
             <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl space-y-4 shadow-xl">
@@ -837,7 +845,6 @@ export default function TeacherDashboard() {
                   </h2>
                   <p className="text-xs text-slate-400">Conduct a live student speaking drill directly from the teacher desk</p>
                 </div>
-
                 {gradeLessons.length > 0 && (
                   <select
                     value={selectedDemoLesson?.id || ''}
@@ -845,25 +852,22 @@ export default function TeacherDashboard() {
                       const found = gradeLessons.find(l => l.id === e.target.value);
                       if (found) setSelectedDemoLesson(found);
                     }}
-                    className="px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs font-bold text-white outline-none focus:border-indigo-500"
+                    className="px-4 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs font-bold text-white outline-none"
                   >
                     {gradeLessons.map(l => (
-                      <option key={l.id} value={l.id}>
-                        Lesson {l.lesson_number}: {l.title}
-                      </option>
+                      <option key={l.id} value={l.id}>Lesson {l.lesson_number}: {l.title}</option>
                     ))}
                   </select>
                 )}
               </div>
-
               {selectedDemoLesson && (
                 <div className="pt-2">
                   <SpeechAnalyzer
-                    promptText={selectedDemoLesson.speaking_prompt || 'Say hello politely and introduce yourself to the class.'}
+                    promptText={selectedDemoLesson.speaking_prompt || 'Say hello politely.'}
                     isTeacher={true}
                     maxAttempts={-1}
                     onComplete={(result) => {
-                      alert(`Classroom Speech Evaluated! Overall Score: ${result.overallScore}%, Pronunciation: ${result.pronunciationScore}%, Fluency: ${result.fluencyScore}%`);
+                      alert(`Speech Evaluated! Score: ${result.overallScore}%`);
                     }}
                   />
                 </div>
@@ -879,39 +883,24 @@ export default function TeacherDashboard() {
                   <tr>
                     <th className="p-4">Student</th>
                     <th className="p-4">Lesson</th>
-                    <th className="p-4">Overall Score</th>
-                    <th className="p-4">Pronunciation</th>
-                    <th className="p-4">Fluency</th>
+                    <th className="p-4">Score</th>
                     <th className="p-4">Transcript Preview</th>
                     <th className="p-4">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800">
                   {speechLogs.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} className="p-6 text-center text-slate-500 font-medium">
-                        No speech submissions for Grade {selectedGrade} - Section {selectedSection} yet.
-                      </td>
-                    </tr>
+                    <tr><td colSpan={5} className="p-6 text-center text-slate-500 font-medium">No submissions yet.</td></tr>
                   ) : (
                     speechLogs.map(log => (
                       <tr key={log.id} className="hover:bg-slate-800/40">
                         <td className="p-4 font-bold text-white">{log.profiles?.full_name}</td>
                         <td className="p-4 text-slate-300">{log.lessons?.title}</td>
-                        <td className="p-4">
-                          <span className="px-2.5 py-1 bg-indigo-500/20 text-indigo-300 font-black rounded-lg text-xs">
-                            {log.overall_score}%
-                          </span>
-                        </td>
-                        <td className="p-4 text-emerald-400 font-bold">{log.pronunciation_score}%</td>
-                        <td className="p-4 text-amber-400 font-bold">{log.fluency_score}%</td>
+                        <td className="p-4"><span className="px-2.5 py-1 bg-indigo-500/20 text-indigo-300 font-black rounded-lg text-xs">{log.overall_score}%</span></td>
                         <td className="p-4 text-slate-400 italic text-xs max-w-xs truncate">"{log.transcribed_text}"</td>
                         <td className="p-4">
-                          <button
-                            onClick={() => setSelectedStudentSpeech(log)}
-                            className="px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white rounded-lg text-xs font-bold transition flex items-center gap-1"
-                          >
-                            Review <ChevronRight className="w-3.5 h-3.5" />
+                          <button onClick={() => setSelectedStudentSpeech(log)} className="px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white rounded-lg text-xs font-bold transition">
+                            Review
                           </button>
                         </td>
                       </tr>
@@ -923,22 +912,15 @@ export default function TeacherDashboard() {
           </div>
         )}
 
-        {/* DRILL-DOWN SPEECH VIEW */}
         {activeTab === 'speech' && selectedStudentSpeech && (
           <div className="space-y-6 animate-in fade-in">
-            <button
-              onClick={() => setSelectedStudentSpeech(null)}
-              className="flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-white bg-slate-900 px-4 py-2 rounded-xl border border-slate-800"
-            >
+            <button onClick={() => setSelectedStudentSpeech(null)} className="flex items-center gap-2 text-xs font-bold text-slate-400 bg-slate-900 px-4 py-2 rounded-xl border border-slate-800">
               <ArrowLeft className="w-4 h-4" /> Back to Submissions
             </button>
-
             <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl space-y-6">
               <div className="flex justify-between items-start">
                 <div>
-                  <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider">
-                    {selectedStudentSpeech.lessons?.title}
-                  </span>
+                  <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider">{selectedStudentSpeech.lessons?.title}</span>
                   <h2 className="text-2xl font-black text-white mt-1">{selectedStudentSpeech.profiles?.full_name}</h2>
                 </div>
                 <div className="text-right">
@@ -946,182 +928,75 @@ export default function TeacherDashboard() {
                   <span className="text-3xl font-black text-emerald-400">{selectedStudentSpeech.overall_score}%</span>
                 </div>
               </div>
-
               <div className="bg-slate-950 p-5 rounded-2xl border border-slate-800 space-y-2">
                 <span className="text-xs font-bold text-slate-400 uppercase">Spoken Transcript</span>
                 <p className="text-white text-base italic leading-relaxed">"{selectedStudentSpeech.transcribed_text}"</p>
               </div>
-
-              <div className="grid grid-cols-3 gap-4">
-                <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 text-center">
-                  <span className="text-xs font-bold text-slate-500 uppercase block">Pronunciation</span>
-                  <span className="text-2xl font-black text-emerald-400">{selectedStudentSpeech.pronunciation_score}%</span>
-                </div>
-                <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 text-center">
-                  <span className="text-xs font-bold text-slate-500 uppercase block">Fluency</span>
-                  <span className="text-2xl font-black text-amber-400">{selectedStudentSpeech.fluency_score}%</span>
-                </div>
-                <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 text-center">
-                  <span className="text-xs font-bold text-slate-500 uppercase block">Vocabulary</span>
-                  <span className="text-2xl font-black text-indigo-400">{selectedStudentSpeech.vocabulary_score}%</span>
-                </div>
-              </div>
             </div>
           </div>
         )}
 
-        {/* TAB 5: TEACHER ATTENDANCE */}
         {activeTab === 'attendance' && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl">
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Today's Status</span>
-                <div className="text-2xl font-black text-emerald-400 mt-1">
-                  {isClockedIn ? 'Clocked In & Active' : 'Not Clocked In'}
-                </div>
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Today Status</span>
+                <div className="text-2xl font-black text-emerald-400 mt-1">{isClockedIn ? 'Clocked In & Active' : 'Not Clocked In'}</div>
                 <p className="text-xs text-slate-500 mt-1">{clockInTime || 'No log today'}</p>
               </div>
-
               <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl">
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Recorded Days</span>
                 <div className="text-3xl font-black text-white mt-1">{teacherAttendanceHistory.length} Days</div>
-                <p className="text-xs text-indigo-400 font-bold mt-1">Present on Record</p>
               </div>
-
               <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl">
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Institution</span>
                 <div className="text-xl font-black text-purple-400 mt-1 truncate">{profile?.schools?.name}</div>
-                <p className="text-xs text-slate-500 mt-1">Code: {profile?.schools?.code}</p>
               </div>
-
               <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl">
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Class Selected</span>
                 <div className="text-2xl font-black text-pink-400 mt-1">Grade {selectedGrade}-{selectedSection}</div>
-                <p className="text-xs text-pink-400 font-bold mt-1">{allSchoolStudents.length} Students</p>
               </div>
-            </div>
-
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-lg">
-              <div className="p-4 border-b border-slate-800 font-bold text-sm text-slate-300">
-                Clock In / Out History Logs
-              </div>
-              <table className="w-full text-left text-sm">
-                <thead className="bg-slate-950 text-slate-400 font-bold text-xs uppercase">
-                  <tr>
-                    <th className="p-4">Date</th>
-                    <th className="p-4">Clock In Time</th>
-                    <th className="p-4">Clock Out Time</th>
-                    <th className="p-4">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800">
-                  {teacherAttendanceHistory.length === 0 ? (
-                    <tr>
-                      <td colSpan={4} className="p-6 text-center text-slate-500 font-medium">
-                        No clock-in records yet. Use the "Clock In" button in the top bar.
-                      </td>
-                    </tr>
-                  ) : (
-                    teacherAttendanceHistory.map(a => (
-                      <tr key={a.id} className="hover:bg-slate-800/40">
-                        <td className="p-4 font-bold text-white">{a.date}</td>
-                        <td className="p-4 text-emerald-400 font-mono">{a.clock_in ? new Date(a.clock_in).toLocaleTimeString() : '--'}</td>
-                        <td className="p-4 text-rose-400 font-mono">{a.clock_out ? new Date(a.clock_out).toLocaleTimeString() : 'In Progress'}</td>
-                        <td className="p-4">
-                          <span className="px-2.5 py-0.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full text-xs font-bold capitalize">
-                            {a.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
             </div>
           </div>
         )}
 
-        {/* TAB 6: CREATE STUDENT */}
         {activeTab === 'create_student' && (
           <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl max-w-xl mx-auto space-y-4 shadow-xl">
             <div className="text-center space-y-1 mb-2">
               <h2 className="text-lg font-black text-white flex items-center justify-center gap-2">
                 <UserPlus className="w-5 h-5 text-indigo-400" /> Enroll New Student
               </h2>
-              <p className="text-xs text-slate-400">
-                Bound to <strong className="text-white">{profile?.schools?.name}</strong>
-              </p>
+              <p className="text-xs text-slate-400">Bound to <strong className="text-white">{profile?.schools?.name}</strong></p>
             </div>
-
             <form onSubmit={handleEnrollStudent} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-400 mb-1">Student Full Name</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Sravan Kumar"
-                  value={newStudentName}
-                  onChange={(e) => setNewStudentName(e.target.value)}
-                  className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white outline-none focus:border-indigo-500 font-medium"
-                  required
-                />
+                <input type="text" placeholder="e.g. Sravan Kumar" value={newStudentName} onChange={(e) => setNewStudentName(e.target.value)} className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white outline-none font-medium" required />
               </div>
-
               <div>
                 <label className="block text-xs font-bold text-slate-400 mb-1">Student Login Email</label>
-                <input
-                  type="email"
-                  placeholder="student@school.com"
-                  value={newStudentEmail}
-                  onChange={(e) => setNewStudentEmail(e.target.value)}
-                  className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white outline-none focus:border-indigo-500 font-medium"
-                  required
-                />
+                <input type="email" placeholder="student@school.com" value={newStudentEmail} onChange={(e) => setNewStudentEmail(e.target.value)} className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white outline-none font-medium" required />
               </div>
-
               <div>
                 <label className="block text-xs font-bold text-slate-400 mb-1">Password</label>
-                <input
-                  type="password"
-                  placeholder="••••••••"
-                  value={newStudentPassword}
-                  onChange={(e) => setNewStudentPassword(e.target.value)}
-                  className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white outline-none focus:border-indigo-500 font-medium"
-                  required
-                />
+                <input type="password" placeholder="••••••••" value={newStudentPassword} onChange={(e) => setNewStudentPassword(e.target.value)} className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white outline-none font-medium" required />
               </div>
-
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-400 mb-1">Assign Grade</label>
-                  <select
-                    value={enrollGrade}
-                    onChange={(e) => setEnrollGrade(e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white outline-none focus:border-indigo-500 font-medium text-xs"
-                  >
-                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(g => (
-                      <option key={g} value={g.toString()}>Grade {g}</option>
-                    ))}
+                  <select value={enrollGrade} onChange={(e) => setEnrollGrade(e.target.value)} className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white font-medium text-xs">
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(g => <option key={g} value={g.toString()}>Grade {g}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-400 mb-1">Assign Section</label>
-                  <select
-                    value={enrollSection}
-                    onChange={(e) => setEnrollSection(e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white outline-none focus:border-indigo-500 font-medium text-xs"
-                  >
-                    {['A', 'B', 'C', 'D'].map(sec => (
-                      <option key={sec} value={sec}>Section {sec}</option>
-                    ))}
+                  <label className="block text-xs font-bold text-slate-500 mb-1">Assign Section</label>
+                  <select value={enrollSection} onChange={(e) => setEnrollSection(e.target.value)} className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white font-medium text-xs">
+                    {['A', 'B', 'C', 'D'].map(sec => <option key={sec} value={sec}>Section {sec}</option>)}
                   </select>
                 </div>
               </div>
-
-              <button
-                type="submit"
-                className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black py-4 rounded-xl transition shadow-lg shadow-indigo-600/30 mt-2"
-              >
-                Enroll Student into Selected Grade & Section
+              <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black py-4 rounded-xl transition shadow-lg mt-2">
+                Enroll Student into Grade & Section
               </button>
             </form>
           </div>

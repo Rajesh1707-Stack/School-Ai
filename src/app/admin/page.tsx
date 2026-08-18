@@ -8,12 +8,12 @@ import {
   GraduationCap, UserPlus, Sparkles, CheckCircle2, ChevronRight,
   Filter, Search, Award, HelpCircle, Layers,
   BarChart3, Clock, Flame, ArrowLeft, RefreshCw, Star, Trash2, Edit3, Check,
-  Volume2, AlertCircle, Wand2, Download, X, KeyRound, Info, Zap, ImageIcon
+  Volume2, AlertCircle, Wand2, Download, X, KeyRound, Info, Zap, ImageIcon, Video, Gamepad2
 } from 'lucide-react';
 
 export default function AdminDashboard() {
   // Navigation
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'schools' | 'staff' | 'students' | 'lessons' | 'activities' | 'quizzes' | 'gamification'>('lessons');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'schools' | 'staff' | 'students' | 'lessons' | 'activities' | 'quizzes' | 'gamification' | 'interactive_builder'>('lessons');
    
   // Data Repositories
   const [schools, setSchools] = useState<any[]>([]);
@@ -82,6 +82,7 @@ export default function AdminDashboard() {
   const [lessonTitle, setLessonTitle] = useState('Greetings');
   const [lessonDesc, setLessonDesc] = useState('Learn to greet people politely in everyday situations.');
   const [lessonImage, setLessonImage] = useState('');
+  const [lessonVideoUrl, setLessonVideoUrl] = useState('');
 
   // Teacher Instruction States & Form Fields
   const [instObj, setInstObj] = useState('Write objectives on the board. Read out loud with energy and have students repeat the goal.');
@@ -124,24 +125,19 @@ Rajesh: I am doing great, thank you! Are you ready for our English class?
 Peter: Yes, I am! Let's go inside and learn together.`
   );
 
-  const [instDrill, setInstDrill] = useState('Lead rhythmic hand-clapping chants to build sentence cadence and eliminate hesitation.');
-  const [repeatContent, setRepeatContent] = useState(
-`Drill 1: Good morning, everyone! Hello, my name is Alex.
-Drill 2: How are you feeling today? I am very happy today.`
-  );
-
   const [speakingPrompt, setSpeakingPrompt] = useState('Record yourself reading aloud: Good morning, teacher! How are you today?');
   const [speakingChallenge, setSpeakingChallenge] = useState('Speak for 30 seconds about three people you greet every day and what you say to them.');
 
   // Form States - Interactive Activity
   const [actLessonId, setActLessonId] = useState('');
-  const [actType, setActType] = useState<'word_builder' | 'fill_in_blank'>('word_builder');
+  const [actType, setActType] = useState<'word_builder' | 'fill_in_blank' | 'sentence_builder'>('word_builder');
   const [actTitle, setActTitle] = useState('');
   const [actPoints, setActPoints] = useState('8');
   const [actSentence, setActSentence] = useState('');
   const [actAnswer, setActAnswer] = useState('');
   const [wbTargetWord, setWbTargetWord] = useState('');
   const [wbClue, setWbClue] = useState('');
+  const [sbSentence, setSbSentence] = useState('');
 
   // Form States - Quiz
   const [quizLessonId, setQuizLessonId] = useState('');
@@ -208,11 +204,10 @@ Drill 2: How are you feeling today? I am very happy today.`
     setLoading(false);
   };
 
-  // 1-Click Complete Auto Deployment
   const handleAutoDeployLesson1With15Questions = async () => {
-    if (!confirm('This will automatically publish Lesson 1 ("Greetings") with teacher instructions and deploy all 15 at-home practice activities into Supabase. Proceed?')) return;
+    if (!confirm('This will automatically publish Lesson 1 ("Greetings") with smart class video link and activities into Supabase. Proceed?')) return;
 
-    setStatusMsg('Auto-deploying Lesson 1 and all 15 questions...');
+    setStatusMsg('Auto-deploying Lesson 1...');
 
     try {
       const { data: lesson, error: lErr } = await supabase.from('lessons').insert([{
@@ -221,6 +216,7 @@ Drill 2: How are you feeling today? I am very happy today.`
         title: 'Greetings',
         description: 'Learn to greet people politely in everyday situations.',
         image_url: null,
+        video_url: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
         learning_objectives: [
           'Learn polite morning, afternoon, and evening greetings.',
           'Know how to ask someone how they are feeling.',
@@ -238,34 +234,21 @@ Drill 2: How are you feeling today? I am very happy today.`
           'Good afternoon, teacher!',
           'Good evening, everyone!',
           'Hello, how are you?',
-          'I am fine, thank you.',
-          'I am happy to see you.',
-          'It is nice to meet you.',
-          'Nice to meet you too.',
-          'Have a nice day!',
-          'Goodbye, teacher!',
-          'See you tomorrow!',
-          'Thank you, teacher.'
+          'I am fine, thank you.'
         ],
         conversation_dialogue: [
           { speaker: 'Rajesh', line: 'Good morning, Peter! It is wonderful to see you today.' },
-          { speaker: 'Peter', line: 'Good morning, Rajesh! I am very happy to see you too. How are you?' },
-          { speaker: 'Rajesh', line: 'I am doing great, thank you! Are you ready for our English class?' },
-          { speaker: 'Peter', line: "Yes, I am! Let's go inside and learn together." }
+          { speaker: 'Peter', line: 'Good morning, Rajesh! I am very happy to see you too. How are you?' }
         ],
-        repeat_sentences: [
-          'Drill 1: Good morning, everyone! Hello, my name is Alex.',
-          'Drill 2: How are you feeling today? I am very happy today.'
-        ],
+        repeat_sentences: [],
         teacher_instructions: {
-          objectives: 'Write objectives on the board. Read out loud with energy and have students repeat the goal.',
-          vocabulary: 'Point to each word. Pronounce slowly, stressing syllables. Have the whole class repeat 3 times.',
-          phrases: 'Explain contextual usage (e.g. morning vs evening). Have rows practice reading aloud line-by-line.',
-          conversation: 'Call 2 students to the front. Assign Person 1 & Person 2 to face each other and speak with clear voice projection.',
-          drills: 'Lead rhythmic hand-clapping chants to build sentence cadence and eliminate hesitation.'
+          objectives: 'Write objectives on the board. Play the lesson video clip first.',
+          vocabulary: 'Point to each word. Pronounce slowly.',
+          phrases: 'Explain contextual usage.',
+          conversation: 'Call 2 students to the front for smart class roleplay.'
         },
         speaking_prompt: 'Record yourself reading aloud: Good morning, teacher! How are you today?',
-        speaking_challenge: 'Speak for 30 seconds about three people you greet every day and what you say to them.'
+        speaking_challenge: 'Speak for 30 seconds about three people you greet every day.'
       }]).select().single();
 
       if (lErr || !lesson) {
@@ -275,28 +258,16 @@ Drill 2: How are you feeling today? I am very happy today.`
       }
 
       await supabase.from('activities').insert([
-        { lesson_id: lesson.id, type: 'word_builder', title: 'Build Word: HELLO', instruction: 'Arrange the scrambled letters to spell the correct word (Max 3 attempts).', question_data: { target_word: 'HELLO', clue: 'A friendly, polite greeting word.' }, points_reward: 8 },
-        { lesson_id: lesson.id, type: 'word_builder', title: 'Build Word: MORNING', instruction: 'Arrange the scrambled letters to spell the correct word (Max 3 attempts).', question_data: { target_word: 'MORNING', clue: 'The early part of the day before noon.' }, points_reward: 8 },
-        { lesson_id: lesson.id, type: 'word_builder', title: 'Build Word: AFTERNOON', instruction: 'Arrange the scrambled letters to spell the correct word (Max 3 attempts).', question_data: { target_word: 'AFTERNOON', clue: 'The time of day from midday until evening.' }, points_reward: 8 },
-        { lesson_id: lesson.id, type: 'word_builder', title: 'Build Word: EVENING', instruction: 'Arrange the scrambled letters to spell the correct word (Max 3 attempts).', question_data: { target_word: 'EVENING', clue: 'The final part of the day before night.' }, points_reward: 8 },
-        { lesson_id: lesson.id, type: 'word_builder', title: 'Build Word: TEACHER', instruction: 'Arrange the scrambled letters to spell the correct word (Max 3 attempts).', question_data: { target_word: 'TEACHER', clue: 'A person at school who helps students learn.' }, points_reward: 8 },
-        
-        { lesson_id: lesson.id, type: 'fill_in_blank', title: 'Complete Sentence 1', instruction: 'Type the correct missing word into the blank space (Max 3 attempts).', question_data: { sentence: 'Good ___ teacher, how are you today?', acceptable_answers: ['morning', 'Morning'] }, points_reward: 8 },
-        { lesson_id: lesson.id, type: 'fill_in_blank', title: 'Complete Sentence 2', instruction: 'Type the correct missing word into the blank space (Max 3 attempts).', question_data: { sentence: 'It is wonderful to ___ you today.', acceptable_answers: ['meet', 'see'] }, points_reward: 8 },
-        { lesson_id: lesson.id, type: 'fill_in_blank', title: 'Complete Sentence 3', instruction: 'Type the correct missing word into the blank space (Max 3 attempts).', question_data: { sentence: 'Hello, my ___ is Rajesh.', acceptable_answers: ['name', 'Name'] }, points_reward: 8 },
-        { lesson_id: lesson.id, type: 'fill_in_blank', title: 'Complete Sentence 4', instruction: 'Type the correct missing word into the blank space (Max 3 attempts).', question_data: { sentence: 'I am very ___ to learn English today.', acceptable_answers: ['happy', 'excited'] }, points_reward: 8 },
-        { lesson_id: lesson.id, type: 'fill_in_blank', title: 'Complete Sentence 5', instruction: 'Type the correct missing word into the blank space (Max 3 attempts).', question_data: { sentence: 'Goodbye teacher, see you ___!', acceptable_answers: ['tomorrow', 'Tomorrow'] }, points_reward: 8 }
+        { lesson_id: lesson.id, type: 'word_builder', title: 'Build Word: HELLO', instruction: 'Arrange the scrambled letters to spell the correct word.', question_data: { target_word: 'HELLO', clue: 'A friendly, polite greeting word.' }, points_reward: 8 },
+        { lesson_id: lesson.id, type: 'fill_in_blank', title: 'Complete Sentence 1', instruction: 'Type the correct missing word.', question_data: { sentence: 'Good ___ teacher, how are you today?', acceptable_answers: ['morning', 'Morning'] }, points_reward: 8 },
+        { lesson_id: lesson.id, type: 'sentence_builder', title: 'Sentence Builder 1', instruction: 'Order the words to form a correct sentence.', question_data: { sentence: 'Good morning teacher how are you' }, points_reward: 8 }
       ]);
 
       await supabase.from('quizzes').insert([
-        { lesson_id: lesson.id, question: 'What is the best greeting to say when you arrive at school at 8:30 AM?', options: ['Good night', 'Good morning', 'Good evening', 'Goodbye'], correct_option_index: 1, marks: 8 },
-        { lesson_id: lesson.id, question: 'If your classmate asks "How are you today?", what should you say?', options: ['I am in Grade 1.', 'I am fine, thank you!', 'My name is Peter.', 'See you tomorrow.'], correct_option_index: 1, marks: 8 },
-        { lesson_id: lesson.id, question: 'What greeting do you use after 12:00 PM (lunch time)?', options: ['Good morning', 'Good afternoon', 'Good night', 'Hello teacher morning'], correct_option_index: 1, marks: 8 },
-        { lesson_id: lesson.id, question: 'What polite phrase do you say when meeting someone new?', options: ['Nice to meet you.', 'Give me your book.', 'Go home now.', 'I am sleeping.'], correct_option_index: 0, marks: 8 },
-        { lesson_id: lesson.id, question: 'What should you say to your teacher when leaving the classroom at the end of the day?', options: ['Good morning, teacher!', 'Goodbye teacher, see you tomorrow!', 'How are you?', 'Welcome!'], correct_option_index: 1, marks: 8 }
+        { lesson_id: lesson.id, question: 'What is the best greeting to say when you arrive at school at 8:30 AM?', options: ['Good night', 'Good morning', 'Good evening', 'Goodbye'], correct_option_index: 1, marks: 8 }
       ]);
 
-      setStatusMsg('Lesson 1 & all 15 Interactive Activities successfully deployed!');
+      setStatusMsg('Lesson 1 & interactive modules successfully deployed!');
       fetchAllAdminData();
       setTimeout(() => setStatusMsg(''), 4000);
     } catch (err: any) {
@@ -417,10 +388,7 @@ Drill 2: How are you feeling today? I am very happy today.`
       current_streak: parseInt(editingUser.current_streak) || 1,
     };
 
-    const { error } = await supabase
-      .from('profiles')
-      .update(updatePayload)
-      .eq('id', editingUser.id);
+    const { error } = await supabase.from('profiles').update(updatePayload).eq('id', editingUser.id);
 
     if (newPasswordInput.trim().length > 0) {
       await fetch('/api/admin/update-password', {
@@ -469,23 +437,13 @@ Drill 2: How are you feeling today? I am very happy today.`
     const objectivesArr = learningObjectives.split('\n').filter(Boolean);
     const vocabArr = vocabInput.split('\n').map(v => {
       const parts = v.split(':');
-      return {
-        word: parts[0]?.trim() || v.trim(),
-        meaning: parts.slice(1).join(':').trim() || ''
-      };
+      return { word: parts[0]?.trim() || v.trim(), meaning: parts.slice(1).join(':').trim() || '' };
     }).filter(v => v.word);
     
     const sentencesArr = usefulSentences.split('\n').map(s => ({ sentence: s.trim() })).filter(s => s.sentence);
-    const repeatArr = repeatContent.split('\n').filter(Boolean);
     const conversationJson = formatConversationForDb(conversationDialogue);
 
-    const teacherInstructionsData = {
-      objectives: instObj,
-      vocabulary: instVocab,
-      phrases: instPhrases,
-      conversation: instConv,
-      drills: instDrill
-    };
+    const teacherInstructionsData = { objectives: instObj, vocabulary: instVocab, phrases: instPhrases, conversation: instConv, drills: '' };
 
     const { error } = await supabase.from('lessons').insert([{
       grade: parseInt(lessonGrade),
@@ -493,19 +451,21 @@ Drill 2: How are you feeling today? I am very happy today.`
       title: lessonTitle,
       description: lessonDesc,
       image_url: lessonImage.trim() || null,
+      video_url: lessonVideoUrl.trim() || null,
       learning_objectives: objectivesArr,
       vocabulary: vocabArr,
       useful_sentences: sentencesArr,
       conversation_dialogue: conversationJson,
-      repeat_sentences: repeatArr,
+      repeat_sentences: [],
       teacher_instructions: teacherInstructionsData,
       speaking_prompt: speakingPrompt,
       speaking_challenge: speakingChallenge,
     }]);
 
     if (!error) {
-      setStatusMsg(`Lesson published with Teacher Instructions to Grade ${lessonGrade} Curriculum!`);
+      setStatusMsg(`Lesson published to Grade ${lessonGrade} Curriculum!`);
       setLessonImage('');
+      setLessonVideoUrl('');
       fetchAllAdminData();
       setTimeout(() => setStatusMsg(''), 3000);
     } else {
@@ -520,6 +480,7 @@ Drill 2: How are you feeling today? I am very happy today.`
     setLessonTitle(lesson.title || '');
     setLessonDesc(lesson.description || '');
     setLessonImage(lesson.image_url || '');
+    setLessonVideoUrl(lesson.video_url || '');
     setLearningObjectives(Array.isArray(lesson.learning_objectives) ? lesson.learning_objectives.join('\n') : '');
     setVocabInput(Array.isArray(lesson.vocabulary) ? lesson.vocabulary.map((v: any) => `${v.word || v}${v.meaning ? `: ${v.meaning}` : ''}`).join('\n') : '');
     setUsefulSentences(Array.isArray(lesson.useful_sentences) ? lesson.useful_sentences.map((s: any) => s.sentence || s).join('\n') : '');
@@ -529,15 +490,12 @@ Drill 2: How are you feeling today? I am very happy today.`
     } else {
       setConversationDialogue(lesson.conversation_dialogue || '');
     }
-
-    setRepeatContent(Array.isArray(lesson.repeat_sentences) ? lesson.repeat_sentences.join('\n') : '');
     
     if (lesson.teacher_instructions) {
       setInstObj(lesson.teacher_instructions.objectives || '');
       setInstVocab(lesson.teacher_instructions.vocabulary || '');
       setInstPhrases(lesson.teacher_instructions.phrases || '');
       setInstConv(lesson.teacher_instructions.conversation || '');
-      setInstDrill(lesson.teacher_instructions.drills || '');
     }
 
     setSpeakingPrompt(lesson.speaking_prompt || '');
@@ -552,46 +510,34 @@ Drill 2: How are you feeling today? I am very happy today.`
     const objectivesArr = learningObjectives.split('\n').filter(Boolean);
     const vocabArr = vocabInput.split('\n').map(v => {
       const parts = v.split(':');
-      return {
-        word: parts[0]?.trim() || v.trim(),
-        meaning: parts.slice(1).join(':').trim() || ''
-      };
+      return { word: parts[0]?.trim() || v.trim(), meaning: parts.slice(1).join(':').trim() || '' };
     }).filter(v => v.word);
 
     const sentencesArr = usefulSentences.split('\n').map(s => ({ sentence: s.trim() })).filter(s => s.sentence);
-    const repeatArr = repeatContent.split('\n').filter(Boolean);
     const conversationJson = formatConversationForDb(conversationDialogue);
+    const teacherInstructionsData = { objectives: instObj, vocabulary: instVocab, phrases: instPhrases, conversation: instConv, drills: '' };
 
-    const teacherInstructionsData = {
-      objectives: instObj,
-      vocabulary: instVocab,
-      phrases: instPhrases,
-      conversation: instConv,
-      drills: instDrill
-    };
-
-    const { error } = await supabase
-      .from('lessons')
-      .update({
-        grade: parseInt(lessonGrade),
-        lesson_number: parseInt(lessonNumber),
-        title: lessonTitle,
-        description: lessonDesc,
-        image_url: lessonImage.trim() || null,
-        learning_objectives: objectivesArr,
-        vocabulary: vocabArr,
-        useful_sentences: sentencesArr,
-        conversation_dialogue: conversationJson,
-        repeat_sentences: repeatArr,
-        teacher_instructions: teacherInstructionsData,
-        speaking_prompt: speakingPrompt,
-        speaking_challenge: speakingChallenge,
-      })
-      .eq('id', editingLessonId);
+    const { error } = await supabase.from('lessons').update({
+      grade: parseInt(lessonGrade),
+      lesson_number: parseInt(lessonNumber),
+      title: lessonTitle,
+      description: lessonDesc,
+      image_url: lessonImage.trim() || null,
+      video_url: lessonVideoUrl.trim() || null,
+      learning_objectives: objectivesArr,
+      vocabulary: vocabArr,
+      useful_sentences: sentencesArr,
+      conversation_dialogue: conversationJson,
+      repeat_sentences: [],
+      teacher_instructions: teacherInstructionsData,
+      speaking_prompt: speakingPrompt,
+      speaking_challenge: speakingChallenge,
+    }).eq('id', editingLessonId);
 
     if (!error) {
       setEditingLessonId(null);
       setLessonImage('');
+      setLessonVideoUrl('');
       setStatusMsg('Lesson updated successfully!');
       fetchAllAdminData();
       setTimeout(() => setStatusMsg(''), 3000);
@@ -602,73 +548,37 @@ Drill 2: How are you feeling today? I am very happy today.`
 
   const handleCreateActivity = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!actLessonId) {
-      alert('Please select a lesson first.');
-      return;
-    }
+    if (!actLessonId) { alert('Please select a lesson first.'); return; }
 
     let questionData: any = {};
     if (actType === 'word_builder') {
-      questionData = {
-        target_word: wbTargetWord.trim().toUpperCase(),
-        clue: wbClue.trim(),
-        words_list: [
-          { word: wbTargetWord.trim().toUpperCase(), meaning: wbClue.trim() }
-        ]
-      };
-    } else {
-      questionData = {
-        sentence: actSentence,
-        acceptable_answers: actAnswer.split(',').map(a => a.trim().toLowerCase())
-      };
+      questionData = { target_word: wbTargetWord.trim().toUpperCase(), clue: wbClue.trim() };
+    } else if (actType === 'fill_in_blank') {
+      questionData = { sentence: actSentence, acceptable_answers: actAnswer.split(',').map(a => a.trim().toLowerCase()) };
+    } else if (actType === 'sentence_builder') {
+      questionData = { sentence: sbSentence.trim() };
     }
 
     if (editingActivityId) {
       const { error } = await supabase.from('activities').update({
-        lesson_id: actLessonId,
-        type: actType,
-        title: actTitle,
-        question_data: questionData,
-        points_reward: parseInt(actPoints) || 8
+        lesson_id: actLessonId, type: actType, title: actTitle, question_data: questionData, points_reward: parseInt(actPoints) || 8
       }).eq('id', editingActivityId);
 
       if (!error) {
-        setEditingActivityId(null);
-        setActTitle('');
-        setActSentence('');
-        setActAnswer('');
-        setWbTargetWord('');
-        setWbClue('');
-        setStatusMsg('Activity updated successfully!');
-        fetchAllAdminData();
-        setTimeout(() => setStatusMsg(''), 3000);
-      } else {
-        alert(error.message);
-      }
+        setEditingActivityId(null); setActTitle(''); setActSentence(''); setActAnswer(''); setWbTargetWord(''); setWbClue(''); setSbSentence('');
+        setStatusMsg('Interactive activity updated successfully!'); fetchAllAdminData(); setTimeout(() => setStatusMsg(''), 3000);
+      } else { alert(error.message); }
     } else {
       const { error } = await supabase.from('activities').insert([{
-        lesson_id: actLessonId,
-        type: actType,
-        title: actTitle,
-        instruction: actType === 'word_builder' 
-          ? 'Arrange the scrambled letters to spell the correct word (Max 3 attempts).' 
-          : 'Type the correct missing word into the blank space (Max 3 attempts).',
-        question_data: questionData,
-        points_reward: parseInt(actPoints) || 8
+        lesson_id: actLessonId, type: actType, title: actTitle,
+        instruction: actType === 'word_builder' ? 'Arrange the scrambled letters to spell the correct word.' : actType === 'fill_in_blank' ? 'Type the missing word.' : 'Order the words to build a sentence.',
+        question_data: questionData, points_reward: parseInt(actPoints) || 8
       }]);
 
       if (!error) {
-        setActTitle('');
-        setActSentence('');
-        setActAnswer('');
-        setWbTargetWord('');
-        setWbClue('');
-        setStatusMsg(`${actType === 'word_builder' ? 'Word Builder' : 'Typing Challenge'} deployed!`);
-        fetchAllAdminData();
-        setTimeout(() => setStatusMsg(''), 3000);
-      } else {
-        alert(error.message);
-      }
+        setActTitle(''); setActSentence(''); setActAnswer(''); setWbTargetWord(''); setWbClue(''); setSbSentence('');
+        setStatusMsg('Interactive activity deployed successfully!'); fetchAllAdminData(); setTimeout(() => setStatusMsg(''), 3000);
+      } else { alert(error.message); }
     }
   };
 
@@ -681,23 +591,21 @@ Drill 2: How are you feeling today? I am very happy today.`
     if (act.type === 'word_builder') {
       setWbTargetWord(act.question_data?.target_word || '');
       setWbClue(act.question_data?.clue || '');
-    } else {
+    } else if (act.type === 'fill_in_blank') {
       setActSentence(act.question_data?.sentence || '');
       setActAnswer(Array.isArray(act.question_data?.acceptable_answers) ? act.question_data.acceptable_answers.join(', ') : '');
+    } else if (act.type === 'sentence_builder') {
+      setSbSentence(act.question_data?.sentence || '');
     }
+    setActiveTab('interactive_builder');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleDeleteActivity = async (id: string) => {
     if (confirm('Are you sure you want to delete this activity?')) {
       const { error } = await supabase.from('activities').delete().eq('id', id);
-      if (!error) {
-        setStatusMsg('Activity deleted successfully.');
-        fetchAllAdminData();
-        setTimeout(() => setStatusMsg(''), 3000);
-      } else {
-        alert(error.message);
-      }
+      if (!error) { setStatusMsg('Activity deleted.'); fetchAllAdminData(); setTimeout(() => setStatusMsg(''), 3000); }
+      else { alert(error.message); }
     }
   };
 
@@ -705,47 +613,20 @@ Drill 2: How are you feeling today? I am very happy today.`
     e.preventDefault();
     if (editingQuizId) {
       const { error } = await supabase.from('quizzes').update({
-        lesson_id: quizLessonId,
-        question: quizQuestion,
-        options: [optA, optB, optC, optD],
-        correct_option_index: parseInt(correctOptIndex),
-        marks: 8
+        lesson_id: quizLessonId, question: quizQuestion, options: [optA, optB, optC, optD], correct_option_index: parseInt(correctOptIndex), marks: 8
       }).eq('id', editingQuizId);
-
       if (!error) {
-        setEditingQuizId(null);
-        setQuizQuestion('');
-        setOptA('');
-        setOptB('');
-        setOptC('');
-        setOptD('');
-        setStatusMsg('Quiz question updated successfully!');
-        fetchAllAdminData();
-        setTimeout(() => setStatusMsg(''), 3000);
-      } else {
-        alert(error.message);
-      }
+        setEditingQuizId(null); setQuizQuestion(''); setOptA(''); setOptB(''); setOptC(''); setOptD('');
+        setStatusMsg('Quiz updated successfully!'); fetchAllAdminData(); setTimeout(() => setStatusMsg(''), 3000);
+      } else { alert(error.message); }
     } else {
       const { error } = await supabase.from('quizzes').insert([{
-        lesson_id: quizLessonId,
-        question: quizQuestion,
-        options: [optA, optB, optC, optD],
-        correct_option_index: parseInt(correctOptIndex),
-        marks: 8
+        lesson_id: quizLessonId, question: quizQuestion, options: [optA, optB, optC, optD], correct_option_index: parseInt(correctOptIndex), marks: 8
       }]);
-
       if (!error) {
-        setQuizQuestion('');
-        setOptA('');
-        setOptB('');
-        setOptC('');
-        setOptD('');
-        setStatusMsg('Quiz question added!');
-        fetchAllAdminData();
-        setTimeout(() => setStatusMsg(''), 3000);
-      } else {
-        alert(error.message);
-      }
+        setQuizQuestion(''); setOptA(''); setOptB(''); setOptC(''); setOptD('');
+        setStatusMsg('Quiz question added!'); fetchAllAdminData(); setTimeout(() => setStatusMsg(''), 3000);
+      } else { alert(error.message); }
     }
   };
 
@@ -758,27 +639,20 @@ Drill 2: How are you feeling today? I am very happy today.`
     setOptC(q.options?.[2] || '');
     setOptD(q.options?.[3] || '');
     setCorrectOptIndex(q.correct_option_index?.toString() || '0');
+    setActiveTab('quizzes');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleDeleteQuiz = async (id: string) => {
     if (confirm('Are you sure you want to delete this quiz question?')) {
       const { error } = await supabase.from('quizzes').delete().eq('id', id);
-      if (!error) {
-        setStatusMsg('Quiz question deleted successfully.');
-        fetchAllAdminData();
-        setTimeout(() => setStatusMsg(''), 3000);
-      } else {
-        alert(error.message);
-      }
+      if (!error) { setStatusMsg('Quiz deleted.'); fetchAllAdminData(); setTimeout(() => setStatusMsg(''), 3000); }
+      else { alert(error.message); }
     }
   };
 
   const exportToExcel = (data: any[], filename: string, headers: string[], rowMapper: (item: any) => string[]) => {
-    if (data.length === 0) {
-      alert('No data available to export.');
-      return;
-    }
+    if (data.length === 0) { alert('No data available to export.'); return; }
     const rows = data.map(item => rowMapper(item).map(val => `"${val || ''}"`).join(','));
     const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows].join('\n');
     const encodedUri = encodeURI(csvContent);
@@ -803,7 +677,6 @@ Drill 2: How are you feeling today? I am very happy today.`
     return matchGrade && matchSection && matchSchool && matchSearch;
   });
 
-  // Filtered Wordwall Activities
   const filteredActivities = activitiesList.filter(act => {
     const matchGrade = actGradeFilter === 'All' || act.lessons?.grade?.toString() === actGradeFilter;
     const matchLesson = actLessonFilter === 'All' || act.lesson_id === actLessonFilter;
@@ -814,7 +687,6 @@ Drill 2: How are you feeling today? I am very happy today.`
     return matchGrade && matchLesson && matchType && matchSearch;
   });
 
-  // Filtered Quizzes
   const filteredQuizzes = quizzesList.filter(q => {
     const matchGrade = quizGradeFilter === 'All' || q.lessons?.grade?.toString() === quizGradeFilter;
     const matchLesson = quizLessonFilter === 'All' || q.lesson_id === quizLessonFilter;
@@ -823,32 +695,32 @@ Drill 2: How are you feeling today? I am very happy today.`
   });
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans selection:bg-indigo-500 selection:text-white">
-      {/* Top Navbar */}
-      <header className="bg-white/95 border-b border-slate-200 backdrop-blur-xl px-4 sm:px-6 py-3.5 flex items-center justify-between sticky top-0 z-50 shadow-sm">
+    <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col font-sans selection:bg-pink-500 selection:text-white">
+      {/* Top Modern Header */}
+      <header className="bg-slate-950/80 border-b border-slate-800 backdrop-blur-xl px-6 py-4 flex items-center justify-between sticky top-0 z-50 shadow-md">
         <div className="flex items-center gap-3">
           <div className="p-2.5 bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 text-white rounded-2xl shadow-lg">
             <ShieldCheck className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-base sm:text-xl font-black tracking-tight text-slate-900 flex items-center gap-2">
-              English Excel <span className="text-xs px-2 py-0.5 bg-indigo-500/20 text-indigo-400 rounded-full border border-indigo-500/30">Super Admin</span>
+            <h1 className="text-lg font-black tracking-tight text-white flex items-center gap-2">
+              English Excel <span className="text-[10px] px-2.5 py-0.5 bg-indigo-500/20 text-indigo-300 rounded-full border border-indigo-500/30">Super Admin Workstation</span>
             </h1>
-            <p className="hidden sm:block text-xs text-slate-500 font-semibold">Teacher Live Guide & Curriculum Engine</p>
+            <p className="text-xs text-slate-400 font-semibold">Smart Class & Interactive Game Engine</p>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
           <button
             onClick={fetchAllAdminData}
-            className="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition border border-slate-300"
+            className="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition border border-slate-700"
             title="Refresh Data"
           >
             <RefreshCw className="w-4 h-4" />
           </button>
           <button
             onClick={handleSignOut}
-            className="flex items-center gap-2 px-4 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-xl font-bold text-sm transition"
+            className="flex items-center gap-2 px-4 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-xl font-bold text-xs uppercase tracking-wider transition"
           >
             <LogOut className="w-4 h-4" /> <span className="hidden sm:inline">Sign Out</span>
           </button>
@@ -856,24 +728,23 @@ Drill 2: How are you feeling today? I am very happy today.`
       </header>
 
       {/* Main Container */}
-      <main className="max-w-[1440px] w-full mx-auto px-4 py-5 sm:px-6 lg:px-8 space-y-6 flex-1">
-        <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_top_right,rgba(99,102,241,0.08),transparent_35%),radial-gradient(circle_at_bottom_left,rgba(168,85,247,0.06),transparent_30%)]" />
+      <main className="max-w-[1440px] w-full mx-auto px-4 py-6 sm:px-6 lg:px-8 space-y-6 flex-1">
         {statusMsg && (
-          <div className="flex items-center gap-2 p-4 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-2xl font-bold animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="flex items-center gap-2 p-4 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 rounded-2xl font-bold animate-in fade-in">
             <CheckCircle2 className="w-5 h-5" /> {statusMsg}
           </div>
         )}
 
-        {/* Global Navigation Bar */}
-        <div className="flex gap-2 p-2 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-x-auto">
+        {/* Modern Nav Tabs */}
+        <div className="flex gap-2 p-2 bg-slate-950/60 rounded-2xl border border-slate-800 shadow-sm overflow-x-auto">
           {[
             { id: 'dashboard', label: 'Overview', icon: BarChart3 },
             { id: 'schools', label: `Schools (${schools.length})`, icon: School },
             { id: 'staff', label: `Staff (${staffList.length})`, icon: UserPlus },
             { id: 'students', label: `Students (${studentsList.length})`, icon: GraduationCap },
             { id: 'lessons', label: `Lessons (${lessonsList.length})`, icon: BookOpen },
-            { id: 'activities', label: `Wordwall Activities (${activitiesList.length})`, icon: Layers },
-            { id: 'quizzes', label: `Quizzes (${quizzesList.length})`, icon: HelpCircle },
+            { id: 'interactive_builder', label: `🎮 Interactive & Wordwall (${activitiesList.length})`, icon: Layers },
+            { id: 'quizzes', label: `📝 Quizzes (${quizzesList.length})`, icon: HelpCircle },
             { id: 'gamification', label: 'Gamification & Badges', icon: Award },
           ].map((tab) => {
             const Icon = tab.icon;
@@ -888,7 +759,7 @@ Drill 2: How are you feeling today? I am very happy today.`
                   setEditingUser(null);
                 }}
                 className={`flex shrink-0 items-center gap-2 px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition ${
-                  isActive ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-500/25' : 'text-slate-500 hover:text-slate-900 hover:bg-indigo-50'
+                  isActive ? 'bg-gradient-to-r from-pink-600 to-purple-600 text-white shadow-lg shadow-pink-600/30' : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
                 }`}
               >
                 <Icon className="w-4 h-4" /> {tab.label}
@@ -901,40 +772,40 @@ Drill 2: How are you feeling today? I am very happy today.`
         {activeTab === 'dashboard' && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-white border border-slate-200 p-5 rounded-3xl relative overflow-hidden shadow-sm">
+              <div className="bg-slate-950 border border-slate-800 p-5 rounded-3xl relative overflow-hidden shadow-sm">
                 <div className="absolute top-0 right-0 p-4 opacity-10"><School className="w-16 h-16 text-indigo-400" /></div>
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Schools</span>
-                <div className="text-4xl font-black text-slate-900 mt-1">{schools.length}</div>
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Schools</span>
+                <div className="text-4xl font-black text-white mt-1">{schools.length}</div>
                 <div className="text-xs text-emerald-400 font-bold mt-2">100% Data Isolated</div>
               </div>
 
-              <div className="bg-white border border-slate-200 p-5 rounded-3xl relative overflow-hidden shadow-sm">
+              <div className="bg-slate-950 border border-slate-800 p-5 rounded-3xl relative overflow-hidden shadow-sm">
                 <div className="absolute top-0 right-0 p-4 opacity-10"><Users className="w-16 h-16 text-purple-400" /></div>
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Staff Accounts</span>
-                <div className="text-4xl font-black text-slate-900 mt-1">{staffList.length}</div>
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Staff Accounts</span>
+                <div className="text-4xl font-black text-white mt-1">{staffList.length}</div>
                 <div className="text-xs text-indigo-400 font-bold mt-2">
                   {staffList.filter(s => s.role === 'principal').length} Principals • {staffList.filter(s => s.role === 'teacher').length} Teachers
                 </div>
               </div>
 
-              <div className="bg-white border border-slate-200 p-5 rounded-3xl relative overflow-hidden shadow-sm">
+              <div className="bg-slate-950 border border-slate-800 p-5 rounded-3xl relative overflow-hidden shadow-sm">
                 <div className="absolute top-0 right-0 p-4 opacity-10"><GraduationCap className="w-16 h-16 text-pink-400" /></div>
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Active Students</span>
-                <div className="text-4xl font-black text-slate-900 mt-1">{studentsList.length}</div>
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Active Students</span>
+                <div className="text-4xl font-black text-white mt-1">{studentsList.length}</div>
                 <div className="text-xs text-pink-400 font-bold mt-2">Grades 1 to 10 Enrolled</div>
               </div>
 
-              <div className="bg-white border border-slate-200 p-5 rounded-3xl relative overflow-hidden shadow-sm">
+              <div className="bg-slate-950 border border-slate-800 p-5 rounded-3xl relative overflow-hidden shadow-sm">
                 <div className="absolute top-0 right-0 p-4 opacity-10"><Sparkles className="w-16 h-16 text-amber-400" /></div>
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">AI Speech Evaluations</span>
-                <div className="text-4xl font-black text-slate-900 mt-1">{speechLogs.length}</div>
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">AI Speech Evaluations</span>
+                <div className="text-4xl font-black text-white mt-1">{speechLogs.length}</div>
                 <div className="text-xs text-amber-400 font-bold mt-2">Recorded Attempts Logged</div>
               </div>
             </div>
 
-            <div className="bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-sm">
+            <div className="bg-slate-950 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-sm">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-black text-slate-900 flex items-center gap-2">
+                <h2 className="text-lg font-black text-white flex items-center gap-2">
                   <Sparkles className="w-5 h-5 text-indigo-400" /> Recent AI Speech Submissions Across Schools
                 </h2>
                 <button
@@ -955,7 +826,7 @@ Drill 2: How are you feeling today? I am very happy today.`
 
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
-                  <thead className="bg-slate-100/80 text-slate-500 font-bold text-xs uppercase">
+                  <thead className="bg-slate-900 text-slate-400 font-bold text-xs uppercase">
                     <tr>
                       <th className="p-4">Student</th>
                       <th className="p-4">Class</th>
@@ -966,20 +837,20 @@ Drill 2: How are you feeling today? I am very happy today.`
                       <th className="p-4">Recorded Text Preview</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-200">
+                  <tbody className="divide-y divide-slate-800">
                     {speechLogs.slice(0, 5).map((log) => (
-                      <tr key={log.id} className="hover:bg-slate-50">
-                        <td className="p-4 font-bold text-slate-900">{log.profiles?.full_name}</td>
+                      <tr key={log.id} className="hover:bg-slate-900/50">
+                        <td className="p-4 font-bold text-white">{log.profiles?.full_name}</td>
                         <td className="p-4 text-indigo-400 font-bold">Grade {log.profiles?.grade}-{log.profiles?.section}</td>
-                        <td className="p-4 text-slate-600">{log.lessons?.title}</td>
+                        <td className="p-4 text-slate-300">{log.lessons?.title}</td>
                         <td className="p-4">
-                          <span className="px-2.5 py-1 bg-indigo-500/20 text-indigo-600 font-black rounded-lg text-xs">
+                          <span className="px-2.5 py-1 bg-indigo-500/20 text-indigo-300 font-black rounded-lg text-xs">
                             {log.overall_score}%
                           </span>
                         </td>
-                        <td className="p-4 text-emerald-600 font-bold">{log.pronunciation_score}%</td>
-                        <td className="p-4 text-amber-600 font-bold">{log.fluency_score}%</td>
-                        <td className="p-4 text-slate-500 italic text-xs max-w-xs truncate">"{log.transcribed_text}"</td>
+                        <td className="p-4 text-emerald-400 font-bold">{log.pronunciation_score}%</td>
+                        <td className="p-4 text-amber-400 font-bold">{log.fluency_score}%</td>
+                        <td className="p-4 text-slate-400 italic text-xs max-w-xs truncate">"{log.transcribed_text}"</td>
                       </tr>
                     ))}
                   </tbody>
@@ -992,8 +863,8 @@ Drill 2: How are you feeling today? I am very happy today.`
         {/* TAB: SCHOOLS */}
         {activeTab === 'schools' && !selectedSchoolView && (
           <div className="space-y-6">
-            <div className="bg-white border border-slate-200 p-6 rounded-3xl">
-              <h2 className="text-lg font-black mb-4 flex items-center gap-2 text-slate-900">
+            <div className="bg-slate-950 border border-slate-800 p-6 rounded-3xl">
+              <h2 className="text-lg font-black mb-4 flex items-center gap-2 text-white">
                 <Plus className="w-5 h-5 text-indigo-400" /> Create & Provision New School
               </h2>
               <form onSubmit={handleCreateSchool} className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1002,7 +873,7 @@ Drill 2: How are you feeling today? I am very happy today.`
                   placeholder="School Name"
                   value={schoolName}
                   onChange={(e) => setSchoolName(e.target.value)}
-                  className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 outline-none focus:border-indigo-500 font-medium"
+                  className="px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-white outline-none focus:border-indigo-500 font-medium"
                   required
                 />
                 <input
@@ -1010,7 +881,7 @@ Drill 2: How are you feeling today? I am very happy today.`
                   placeholder="Unique School Code (e.g. EDIS01)"
                   value={schoolCode}
                   onChange={(e) => setSchoolCode(e.target.value)}
-                  className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 outline-none focus:border-indigo-500 font-medium uppercase"
+                  className="px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-white outline-none focus:border-indigo-500 font-medium uppercase"
                   required
                 />
                 <input
@@ -1018,21 +889,21 @@ Drill 2: How are you feeling today? I am very happy today.`
                   placeholder="City / Address"
                   value={schoolAddress}
                   onChange={(e) => setSchoolAddress(e.target.value)}
-                  className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 outline-none focus:border-indigo-500 font-medium"
+                  className="px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-white outline-none focus:border-indigo-500 font-medium"
                 />
                 <input
                   type="email"
                   placeholder="Official Email"
                   value={schoolEmail}
                   onChange={(e) => setSchoolEmail(e.target.value)}
-                  className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 outline-none focus:border-indigo-500 font-medium"
+                  className="px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-white outline-none focus:border-indigo-500 font-medium"
                 />
                 <input
                   type="text"
                   placeholder="Contact Number"
                   value={schoolContact}
                   onChange={(e) => setSchoolContact(e.target.value)}
-                  className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 outline-none focus:border-indigo-500 font-medium"
+                  className="px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-white outline-none focus:border-indigo-500 font-medium"
                 />
                 <button
                   type="submit"
@@ -1050,41 +921,41 @@ Drill 2: How are you feeling today? I am very happy today.`
                 const principal = staffList.find(st => st.school_id === s.id && st.role === 'principal');
 
                 return (
-                  <div key={s.id} className="p-6 rounded-3xl bg-white border border-slate-200 flex flex-col justify-between space-y-4 shadow-sm">
+                  <div key={s.id} className="p-6 rounded-3xl bg-slate-950 border border-slate-800 flex flex-col justify-between space-y-4 shadow-sm">
                     <div>
                       <div className="flex justify-between items-start">
                         <div>
-                          <h3 className="font-bold text-xl text-slate-900">{s.name}</h3>
-                          <p className="text-xs text-slate-500 mt-0.5">{s.address || 'Address not registered'}</p>
+                          <h3 className="font-bold text-xl text-white">{s.name}</h3>
+                          <p className="text-xs text-slate-400 mt-0.5">{s.address || 'Address not registered'}</p>
                         </div>
-                        <span className="px-3 py-1 bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 rounded-full text-xs font-bold">
+                        <span className="px-3 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full text-xs font-bold">
                           Active
                         </span>
                       </div>
 
-                      <div className="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-slate-200 text-center">
-                        <div className="bg-slate-50 p-2.5 rounded-2xl">
-                          <span className="text-xs text-slate-500 font-bold block">CODE</span>
-                          <span className="text-sm font-black text-indigo-600 font-mono">{s.code}</span>
+                      <div className="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-slate-800 text-center">
+                        <div className="bg-slate-900 p-2.5 rounded-2xl">
+                          <span className="text-[10px] text-slate-400 font-bold block uppercase">CODE</span>
+                          <span className="text-sm font-black text-indigo-400 font-mono">{s.code}</span>
                         </div>
-                        <div className="bg-slate-50 p-2.5 rounded-2xl">
-                          <span className="text-xs text-slate-500 font-bold block">TEACHERS</span>
-                          <span className="text-sm font-black text-purple-600">{schoolTeachers.length}</span>
+                        <div className="bg-slate-900 p-2.5 rounded-2xl">
+                          <span className="text-[10px] text-slate-400 font-bold block uppercase">TEACHERS</span>
+                          <span className="text-sm font-black text-purple-400">{schoolTeachers.length}</span>
                         </div>
-                        <div className="bg-slate-50 p-2.5 rounded-2xl">
-                          <span className="text-xs text-slate-500 font-bold block">STUDENTS</span>
-                          <span className="text-sm font-black text-pink-600">{schoolStudents.length}</span>
+                        <div className="bg-slate-900 p-2.5 rounded-2xl">
+                          <span className="text-[10px] text-slate-400 font-bold block uppercase">STUDENTS</span>
+                          <span className="text-sm font-black text-pink-400">{schoolStudents.length}</span>
                         </div>
                       </div>
 
-                      <div className="mt-3 text-xs text-slate-500 font-medium">
-                        Principal: <span className="text-slate-700 font-bold">{principal?.full_name || 'No Principal Assigned'}</span>
+                      <div className="mt-3 text-xs text-slate-400 font-medium">
+                        Principal: <span className="text-white font-bold">{principal?.full_name || 'No Principal Assigned'}</span>
                       </div>
                     </div>
 
                     <button
                       onClick={() => setSelectedSchoolView(s)}
-                      className="w-full py-3 bg-slate-100 hover:bg-indigo-600 text-slate-700 hover:text-white rounded-xl font-bold text-sm transition flex items-center justify-center gap-2"
+                      className="w-full py-3 bg-slate-900 hover:bg-indigo-600 text-slate-200 hover:text-white rounded-xl font-bold text-sm transition flex items-center justify-center gap-2 border border-slate-800"
                     >
                       Open School Dashboard <ChevronRight className="w-4 h-4" />
                     </button>
@@ -1100,26 +971,26 @@ Drill 2: How are you feeling today? I am very happy today.`
           <div className="space-y-6 animate-in fade-in">
             <button
               onClick={() => setSelectedSchoolView(null)}
-              className="flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-slate-900 bg-white px-4 py-2 rounded-xl border border-slate-200"
+              className="flex items-center gap-2 text-xs font-bold text-slate-300 hover:text-white bg-slate-950 px-4 py-2 rounded-xl border border-slate-800"
             >
               <ArrowLeft className="w-4 h-4" /> Back to All Schools
             </button>
 
-            <div className="bg-white border border-slate-200 p-6 rounded-3xl flex justify-between items-center">
+            <div className="bg-slate-950 border border-slate-800 p-6 rounded-3xl flex justify-between items-center">
               <div>
-                <h2 className="text-2xl font-black text-slate-900">{selectedSchoolView.name}</h2>
-                <p className="text-xs text-indigo-600 font-mono font-bold mt-1">CODE: {selectedSchoolView.code} • {selectedSchoolView.address}</p>
+                <h2 className="text-2xl font-black text-white">{selectedSchoolView.name}</h2>
+                <p className="text-xs text-indigo-400 font-mono font-bold mt-1">CODE: {selectedSchoolView.code} • {selectedSchoolView.address}</p>
               </div>
               <div className="flex gap-4 text-right">
                 <div>
-                  <span className="text-xs text-slate-500 font-bold uppercase block">Teachers</span>
-                  <span className="text-xl font-black text-purple-600">
+                  <span className="text-xs text-slate-400 font-bold uppercase block">Teachers</span>
+                  <span className="text-xl font-black text-purple-400">
                     {staffList.filter(st => st.school_id === selectedSchoolView.id && st.role === 'teacher').length}
                   </span>
                 </div>
                 <div>
-                  <span className="text-xs text-slate-500 font-bold uppercase block">Students</span>
-                  <span className="text-xl font-black text-pink-600">
+                  <span className="text-xs text-slate-400 font-bold uppercase block">Students</span>
+                  <span className="text-xl font-black text-pink-400">
                     {studentsList.filter(st => st.school_id === selectedSchoolView.id).length}
                   </span>
                 </div>
@@ -1127,18 +998,18 @@ Drill 2: How are you feeling today? I am very happy today.`
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-white border border-slate-200 p-6 rounded-3xl space-y-4">
-                <h3 className="font-bold text-lg text-slate-900 flex items-center gap-2">
-                  <Users className="w-5 h-5 text-purple-600" /> Assigned Teachers
+              <div className="bg-slate-950 border border-slate-800 p-6 rounded-3xl space-y-4">
+                <h3 className="font-bold text-lg text-white flex items-center gap-2">
+                  <Users className="w-5 h-5 text-purple-400" /> Assigned Teachers
                 </h3>
                 <div className="space-y-2">
                   {staffList.filter(st => st.school_id === selectedSchoolView.id && st.role === 'teacher').map(t => (
-                    <div key={t.id} className="p-3 bg-slate-50 rounded-2xl border border-slate-200 flex justify-between items-center">
+                    <div key={t.id} className="p-3 bg-slate-900 rounded-2xl border border-slate-800 flex justify-between items-center">
                       <div>
-                        <div className="font-bold text-slate-900 text-sm">{t.full_name}</div>
-                        <div className="text-xs text-slate-500 font-mono">{t.email}</div>
+                        <div className="font-bold text-white text-sm">{t.full_name}</div>
+                        <div className="text-xs text-slate-400 font-mono">{t.email}</div>
                       </div>
-                      <span className="text-xs px-2.5 py-1 bg-purple-500/20 text-purple-700 font-bold rounded-lg">
+                      <span className="text-xs px-2.5 py-1 bg-purple-500/20 text-purple-300 font-bold rounded-lg border border-purple-500/30">
                         Grade {t.grade}-{t.section}
                       </span>
                     </div>
@@ -1146,18 +1017,18 @@ Drill 2: How are you feeling today? I am very happy today.`
                 </div>
               </div>
 
-              <div className="bg-white border border-slate-200 p-6 rounded-3xl space-y-4">
-                <h3 className="font-bold text-lg text-slate-900 flex items-center gap-2">
-                  <GraduationCap className="w-5 h-5 text-pink-600" /> Enrolled Students
+              <div className="bg-slate-950 border border-slate-800 p-6 rounded-3xl space-y-4">
+                <h3 className="font-bold text-lg text-white flex items-center gap-2">
+                  <GraduationCap className="w-5 h-5 text-pink-400" /> Enrolled Students
                 </h3>
                 <div className="space-y-2">
                   {studentsList.filter(st => st.school_id === selectedSchoolView.id).map(s => (
-                    <div key={s.id} className="p-3 bg-slate-50 rounded-2xl border border-slate-200 flex justify-between items-center">
+                    <div key={s.id} className="p-3 bg-slate-900 rounded-2xl border border-slate-800 flex justify-between items-center">
                       <div>
-                        <div className="font-bold text-slate-900 text-sm">{s.full_name}</div>
-                        <div className="text-xs text-slate-500">Grade {s.grade} - Section {s.section}</div>
+                        <div className="font-bold text-white text-sm">{s.full_name}</div>
+                        <div className="text-xs text-slate-400">Grade {s.grade} - Section {s.section}</div>
                       </div>
-                      <span className="text-xs font-black text-amber-600 bg-amber-500/10 px-2.5 py-1 rounded-lg">
+                      <span className="text-xs font-black text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20">
                         {s.points || 0} XP
                       </span>
                     </div>
@@ -1171,50 +1042,50 @@ Drill 2: How are you feeling today? I am very happy today.`
         {/* TAB: STAFF MANAGEMENT */}
         {activeTab === 'staff' && (
           <div className="space-y-6">
-            <div className="bg-white border border-slate-200 p-6 rounded-3xl">
-              <h2 className="text-lg font-black mb-4 flex items-center gap-2 text-slate-900">
-                <UserPlus className="w-5 h-5 text-purple-600" /> Provision Principal / Teacher Account
+            <div className="bg-slate-950 border border-slate-800 p-6 rounded-3xl">
+              <h2 className="text-lg font-black mb-4 flex items-center gap-2 text-white">
+                <UserPlus className="w-5 h-5 text-purple-400" /> Provision Principal / Teacher Account
               </h2>
               <form onSubmit={handleCreateStaff} className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">Full Name</label>
+                  <label className="block text-xs font-bold text-slate-400 mb-1">Full Name</label>
                   <input
                     type="text"
                     placeholder="e.g. Ramesh Kumar"
                     value={staffName}
                     onChange={(e) => setStaffName(e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 outline-none focus:border-purple-500 font-medium"
+                    className="w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-white outline-none focus:border-purple-500 font-medium"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">Email Address (Username)</label>
+                  <label className="block text-xs font-bold text-slate-400 mb-1">Email Address (Username)</label>
                   <input
                     type="email"
                     placeholder="staff@school.com"
                     value={staffEmail}
                     onChange={(e) => setStaffEmail(e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 outline-none focus:border-purple-500 font-medium"
+                    className="w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-white outline-none focus:border-purple-500 font-medium"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">Password</label>
+                  <label className="block text-xs font-bold text-slate-400 mb-1">Password</label>
                   <input
                     type="text"
                     placeholder="Password"
                     value={staffPassword}
                     onChange={(e) => setStaffPassword(e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 outline-none focus:border-purple-500 font-medium"
+                    className="w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-white outline-none focus:border-purple-500 font-medium"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">Assign to School</label>
+                  <label className="block text-xs font-bold text-slate-400 mb-1">Assign to School</label>
                   <select
                     value={staffSchoolId}
                     onChange={(e) => setStaffSchoolId(e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 outline-none focus:border-purple-500 font-medium"
+                    className="w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-white outline-none focus:border-purple-500 font-medium"
                     required
                   >
                     {schools.map((s) => (
@@ -1223,11 +1094,11 @@ Drill 2: How are you feeling today? I am very happy today.`
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">Role Type</label>
+                  <label className="block text-xs font-bold text-slate-400 mb-1">Role Type</label>
                   <select
                     value={staffRole}
                     onChange={(e: any) => setStaffRole(e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 outline-none focus:border-purple-500 font-medium"
+                    className="w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-white outline-none focus:border-purple-500 font-medium"
                   >
                     <option value="principal">Principal (School Head - Access to Entire School)</option>
                     <option value="teacher">Teacher (Class Teacher - Assigned Class Access)</option>
@@ -1237,11 +1108,11 @@ Drill 2: How are you feeling today? I am very happy today.`
                 {staffRole === 'teacher' && (
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="block text-xs font-bold text-slate-500 mb-1">Grade</label>
+                      <label className="block text-xs font-bold text-slate-400 mb-1">Grade</label>
                       <select
                         value={staffGrade}
                         onChange={(e) => setStaffGrade(e.target.value)}
-                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 outline-none focus:border-purple-500 font-medium"
+                        className="w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-white outline-none focus:border-purple-500 font-medium"
                       >
                         {[1,2,3,4,5,6,7,8,9,10].map(g => (
                           <option key={g} value={g}>Grade {g}</option>
@@ -1249,11 +1120,11 @@ Drill 2: How are you feeling today? I am very happy today.`
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-slate-500 mb-1">Section</label>
+                      <label className="block text-xs font-bold text-slate-400 mb-1">Section</label>
                       <select
                         value={staffSection}
                         onChange={(e) => setStaffSection(e.target.value)}
-                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 outline-none focus:border-purple-500 font-medium"
+                        className="w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-white outline-none focus:border-purple-500 font-medium"
                       >
                         {['A','B','C','D'].map(sec => (
                           <option key={sec} value={sec}>Section {sec}</option>
@@ -1272,9 +1143,9 @@ Drill 2: How are you feeling today? I am very happy today.`
               </form>
             </div>
 
-            <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
-              <div className="p-4 flex justify-between items-center border-b border-slate-200">
-                <span className="font-bold text-slate-700 text-sm">Staff Directory ({staffList.length})</span>
+            <div className="bg-slate-950 border border-slate-800 rounded-3xl overflow-hidden shadow-sm">
+              <div className="p-4 flex justify-between items-center border-b border-slate-800">
+                <span className="font-bold text-slate-300 text-sm">Staff Directory ({staffList.length})</span>
                 <button
                   onClick={() => exportToExcel(staffList, 'Staff_Directory', ['Name', 'Role', 'School', 'Grade', 'Section', 'Email'], st => [
                     st.full_name, st.role, st.schools?.name, st.grade, st.section, st.email
@@ -1286,7 +1157,7 @@ Drill 2: How are you feeling today? I am very happy today.`
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
-                  <thead className="bg-slate-100/80 text-slate-500 font-bold text-xs uppercase">
+                  <thead className="bg-slate-900 text-slate-400 font-bold text-xs uppercase">
                     <tr>
                       <th className="p-4">Name</th>
                       <th className="p-4">Role</th>
@@ -1296,25 +1167,25 @@ Drill 2: How are you feeling today? I am very happy today.`
                       <th className="p-4 text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-200">
+                  <tbody className="divide-y divide-slate-800">
                     {staffList.map((st) => (
-                      <tr key={st.id} className="hover:bg-slate-50">
-                        <td className="p-4 font-bold text-slate-900">{st.full_name}</td>
+                      <tr key={st.id} className="hover:bg-slate-900/50">
+                        <td className="p-4 font-bold text-white">{st.full_name}</td>
                         <td className="p-4">
                           <span className={`px-2.5 py-0.5 rounded-full text-xs font-black uppercase ${
-                            st.role === 'principal' ? 'bg-amber-500/20 text-amber-600' : 'bg-purple-500/20 text-purple-700'
+                            st.role === 'principal' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
                           }`}>
                             {st.role}
                           </span>
                         </td>
-                        <td className="p-4 text-slate-600">{st.schools?.name || 'Global'}</td>
-                        <td className="p-4 text-slate-600">{st.grade ? `Grade ${st.grade} - ${st.section}` : 'Full School'}</td>
-                        <td className="p-4 text-slate-500 font-mono text-xs">{st.email}</td>
+                        <td className="p-4 text-slate-300">{st.schools?.name || 'Global'}</td>
+                        <td className="p-4 text-slate-300">{st.grade ? `Grade ${st.grade} - ${st.section}` : 'Full School'}</td>
+                        <td className="p-4 text-slate-400 font-mono text-xs">{st.email}</td>
                         <td className="p-4 text-right space-x-2">
-                          <button onClick={() => setEditingUser(st)} className="px-2.5 py-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg text-xs font-bold inline-flex items-center gap-1" title="Edit / Reset Password">
+                          <button onClick={() => setEditingUser(st)} className="px-2.5 py-1.5 bg-indigo-500/10 text-indigo-300 hover:bg-indigo-500/20 border border-indigo-500/30 rounded-lg text-xs font-bold inline-flex items-center gap-1" title="Edit / Reset Password">
                             <Edit3 className="w-3.5 h-3.5" /> Edit & Password
                           </button>
-                          <button onClick={() => handleDeleteUser(st.id, st.full_name)} className="p-1.5 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-lg inline-flex items-center" title="Delete Staff">
+                          <button onClick={() => handleDeleteUser(st.id, st.full_name)} className="p-1.5 bg-rose-500/10 text-rose-400 border border-rose-500/20 rounded-lg inline-flex items-center" title="Delete Staff">
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </td>
@@ -1330,50 +1201,50 @@ Drill 2: How are you feeling today? I am very happy today.`
         {/* TAB: STUDENT ROSTER */}
         {activeTab === 'students' && !selectedStudentDetail && (
           <div className="space-y-6">
-            <div className="bg-white border border-slate-200 p-6 rounded-3xl">
-              <h2 className="text-lg font-black mb-4 flex items-center gap-2 text-slate-900">
-                <UserPlus className="w-5 h-5 text-pink-600" /> Register New Student Account (Any School)
+            <div className="bg-slate-950 border border-slate-800 p-6 rounded-3xl">
+              <h2 className="text-lg font-black mb-4 flex items-center gap-2 text-white">
+                <UserPlus className="w-5 h-5 text-pink-400" /> Register New Student Account (Any School)
               </h2>
               <form onSubmit={handleCreateStudent} className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">Student Full Name</label>
+                  <label className="block text-xs font-bold text-slate-400 mb-1">Student Full Name</label>
                   <input
                     type="text"
                     placeholder="e.g. Varshini"
                     value={stuName}
                     onChange={(e) => setStuName(e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 outline-none focus:border-pink-500 font-medium"
+                    className="w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-white outline-none focus:border-pink-500 font-medium"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">Email Address (Username)</label>
+                  <label className="block text-xs font-bold text-slate-400 mb-1">Email Address (Username)</label>
                   <input
                     type="email"
                     placeholder="student@school.com"
                     value={stuEmail}
                     onChange={(e) => setStuEmail(e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 outline-none focus:border-pink-500 font-medium"
+                    className="w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-white outline-none focus:border-pink-500 font-medium"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">Password</label>
+                  <label className="block text-xs font-bold text-slate-400 mb-1">Password</label>
                   <input
                     type="text"
                     placeholder="Password"
                     value={stuPassword}
                     onChange={(e) => setStuPassword(e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 outline-none focus:border-pink-500 font-medium"
+                    className="w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-white outline-none focus:border-pink-500 font-medium"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">Select School</label>
+                  <label className="block text-xs font-bold text-slate-400 mb-1">Select School</label>
                   <select
                     value={stuSchoolId}
                     onChange={(e) => setStuSchoolId(e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 outline-none focus:border-pink-500 font-medium"
+                    className="w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-white outline-none focus:border-pink-500 font-medium"
                     required
                   >
                     {schools.map((s) => (
@@ -1382,11 +1253,11 @@ Drill 2: How are you feeling today? I am very happy today.`
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">Grade</label>
+                  <label className="block text-xs font-bold text-slate-400 mb-1">Grade</label>
                   <select
                     value={stuGrade}
                     onChange={(e) => setStuGrade(e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 outline-none focus:border-pink-500 font-medium"
+                    className="w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-white outline-none focus:border-pink-500 font-medium"
                   >
                     {[1,2,3,4,5,6,7,8,9,10].map(g => (
                       <option key={g} value={g}>Grade {g}</option>
@@ -1394,11 +1265,11 @@ Drill 2: How are you feeling today? I am very happy today.`
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">Section</label>
+                  <label className="block text-xs font-bold text-slate-400 mb-1">Section</label>
                   <select
                     value={stuSection}
                     onChange={(e) => setStuSection(e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 outline-none focus:border-pink-500 font-medium"
+                    className="w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-white outline-none focus:border-pink-500 font-medium"
                   >
                     {['A','B','C','D'].map(sec => (
                       <option key={sec} value={sec}>Section {sec}</option>
@@ -1415,23 +1286,23 @@ Drill 2: How are you feeling today? I am very happy today.`
               </form>
             </div>
 
-            <div className="bg-white border border-slate-200 p-4 rounded-3xl flex flex-wrap gap-4 items-center justify-between">
+            <div className="bg-slate-950 border border-slate-800 p-4 rounded-3xl flex flex-wrap gap-4 items-center justify-between shadow-sm">
               <div className="flex flex-wrap gap-3 items-center">
-                <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 rounded-xl border border-slate-200 text-sm">
-                  <Search className="w-4 h-4 text-slate-500" />
+                <div className="flex items-center gap-2 px-3 py-2 bg-slate-900 rounded-xl border border-slate-800 text-sm">
+                  <Search className="w-4 h-4 text-slate-400" />
                   <input
                     type="text"
                     placeholder="Search by name or email..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="bg-transparent outline-none text-slate-900 text-xs font-medium"
+                    className="bg-transparent outline-none text-white text-xs font-medium"
                   />
                 </div>
 
                 <select
                   value={schoolFilter}
                   onChange={(e) => setSchoolFilter(e.target.value)}
-                  className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 outline-none"
+                  className="px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs font-bold text-white outline-none"
                 >
                   <option value="All">All Schools</option>
                   {schools.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
@@ -1440,7 +1311,7 @@ Drill 2: How are you feeling today? I am very happy today.`
                 <select
                   value={gradeFilter}
                   onChange={(e) => setGradeFilter(e.target.value)}
-                  className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 outline-none"
+                  className="px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs font-bold text-white outline-none"
                 >
                   <option value="All">All Grades</option>
                   {[1,2,3,4,5,6,7,8,9,10].map(g => <option key={g} value={g.toString()}>Grade {g}</option>)}
@@ -1449,7 +1320,7 @@ Drill 2: How are you feeling today? I am very happy today.`
                 <select
                   value={sectionFilter}
                   onChange={(e) => setSectionFilter(e.target.value)}
-                  className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 outline-none"
+                  className="px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs font-bold text-white outline-none"
                 >
                   <option value="All">All Sections</option>
                   {['A','B','C','D'].map(sec => <option key={sec} value={sec}>Section {sec}</option>)}
@@ -1465,16 +1336,16 @@ Drill 2: How are you feeling today? I am very happy today.`
                 >
                   <Download className="w-4 h-4" /> Export as Excel
                 </button>
-                <span className="text-xs font-bold text-slate-500">
+                <span className="text-xs font-bold text-slate-400">
                   Found {filteredStudents.length} Students
                 </span>
               </div>
             </div>
 
-            <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden">
+            <div className="bg-slate-950 border border-slate-800 rounded-3xl overflow-hidden shadow-sm">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
-                  <thead className="bg-slate-100/80 text-slate-500 font-bold text-xs uppercase">
+                  <thead className="bg-slate-900 text-slate-400 font-bold text-xs uppercase">
                     <tr>
                       <th className="p-4">Student</th>
                       <th className="p-4">School</th>
@@ -1484,29 +1355,29 @@ Drill 2: How are you feeling today? I am very happy today.`
                       <th className="p-4 text-right">Action</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-200">
+                  <tbody className="divide-y divide-slate-800">
                     {filteredStudents.map((st) => (
-                      <tr key={st.id} className="hover:bg-slate-50">
-                        <td className="p-4 font-bold text-slate-900">{st.full_name}</td>
-                        <td className="p-4 text-slate-600">{st.schools?.name}</td>
-                        <td className="p-4 font-bold text-indigo-600">Grade {st.grade} - {st.section}</td>
-                        <td className="p-4 text-slate-500 font-mono text-xs">{st.email}</td>
+                      <tr key={st.id} className="hover:bg-slate-900/50">
+                        <td className="p-4 font-bold text-white">{st.full_name}</td>
+                        <td className="p-4 text-slate-300">{st.schools?.name}</td>
+                        <td className="p-4 font-bold text-indigo-400">Grade {st.grade} - {st.section}</td>
+                        <td className="p-4 text-slate-400 font-mono text-xs">{st.email}</td>
                         <td className="p-4">
-                          <span className="px-2.5 py-1 bg-amber-500/10 border border-amber-500/20 text-amber-600 font-black rounded-lg text-xs">
+                          <span className="px-2.5 py-1 bg-amber-500/10 border border-amber-500/20 text-amber-400 font-black rounded-lg text-xs">
                             {st.points || 0} XP
                           </span>
                         </td>
                         <td className="p-4 text-right space-x-2">
                           <button
                             onClick={() => setSelectedStudentDetail(st)}
-                            className="px-3 py-1.5 bg-indigo-600/10 hover:bg-indigo-600 text-indigo-600 hover:text-white rounded-lg text-xs font-bold transition"
+                            className="px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-600 text-indigo-300 hover:text-white rounded-lg text-xs font-bold transition border border-indigo-500/20"
                           >
                             View Performance
                           </button>
-                          <button onClick={() => setEditingUser(st)} className="p-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg inline-flex items-center" title="Edit / Reset Password">
+                          <button onClick={() => setEditingUser(st)} className="p-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 rounded-lg inline-flex items-center" title="Edit / Reset Password">
                             <Edit3 className="w-4 h-4" />
                           </button>
-                          <button onClick={() => handleDeleteUser(st.id, st.full_name)} className="p-1.5 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-lg inline-flex items-center" title="Delete Student">
+                          <button onClick={() => handleDeleteUser(st.id, st.full_name)} className="p-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-lg inline-flex items-center" title="Delete Student">
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </td>
@@ -1521,36 +1392,36 @@ Drill 2: How are you feeling today? I am very happy today.`
 
         {/* EDIT USER & PASSWORD RESET MODAL */}
         {editingUser && (
-          <div className="fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-white border border-slate-200 rounded-3xl p-6 max-w-md w-full space-y-4 shadow-2xl">
-              <div className="flex justify-between items-center">
-                <h3 className="text-lg font-black text-slate-900">Edit User & Reset Password</h3>
-                <button onClick={() => { setEditingUser(null); setNewPasswordInput(''); }} className="p-1.5 bg-slate-100 hover:bg-slate-200 rounded-xl">
-                  <X className="w-5 h-5 text-slate-600" />
+          <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-md w-full space-y-4 shadow-2xl text-slate-100">
+              <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 className="text-lg font-black text-white">Edit User & Reset Password</h3>
+                <button onClick={() => { setEditingUser(null); setNewPasswordInput(''); }} className="p-1.5 bg-slate-800 hover:bg-slate-700 rounded-xl">
+                  <X className="w-5 h-5 text-slate-300" />
                 </button>
               </div>
               <form onSubmit={handleUpdateUser} className="space-y-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">Full Name</label>
+                  <label className="block text-xs font-bold text-slate-400 mb-1">Full Name</label>
                   <input
                     type="text"
                     value={editingUser.full_name || ''}
                     onChange={(e) => setEditingUser({ ...editingUser, full_name: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium text-xs"
+                    className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white font-medium text-xs outline-none"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">Username / Email (Read-only)</label>
+                  <label className="block text-xs font-bold text-slate-400 mb-1">Username / Email (Read-only)</label>
                   <input
                     type="text"
                     value={editingUser.email || ''}
                     disabled
-                    className="w-full px-3 py-2 bg-slate-100 border border-slate-200 rounded-xl text-slate-500 font-mono text-xs cursor-not-allowed"
+                    className="w-full px-3 py-2 bg-slate-950/50 border border-slate-800 rounded-xl text-slate-500 font-mono text-xs cursor-not-allowed"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-indigo-600 mb-1 flex items-center gap-1">
+                  <label className="block text-xs font-bold text-indigo-400 mb-1 flex items-center gap-1">
                     <KeyRound className="w-3.5 h-3.5" /> Assign New Password (Leave blank to keep current)
                   </label>
                   <input
@@ -1558,47 +1429,47 @@ Drill 2: How are you feeling today? I am very happy today.`
                     placeholder="Enter new temporary password"
                     value={newPasswordInput}
                     onChange={(e) => setNewPasswordInput(e.target.value)}
-                    className="w-full px-3 py-2 bg-indigo-50/50 border border-indigo-200 rounded-xl text-slate-900 font-medium text-xs"
+                    className="w-full px-3 py-2 bg-indigo-950/50 border border-indigo-900/50 rounded-xl text-white font-medium text-xs outline-none"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-1">Grade</label>
+                    <label className="block text-xs font-bold text-slate-400 mb-1">Grade</label>
                     <input
                       type="number"
                       value={editingUser.grade || 1}
                       onChange={(e) => setEditingUser({ ...editingUser, grade: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium text-xs"
+                      className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white font-medium text-xs outline-none"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-1">Section</label>
+                    <label className="block text-xs font-bold text-slate-400 mb-1">Section</label>
                     <input
                       type="text"
                       value={editingUser.section || 'A'}
                       onChange={(e) => setEditingUser({ ...editingUser, section: e.target.value })}
-                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium text-xs"
+                      className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white font-medium text-xs outline-none"
                     />
                   </div>
                 </div>
                 {editingUser.role === 'student' && (
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="block text-xs font-bold text-slate-500 mb-1">Total XP Points</label>
+                      <label className="block text-xs font-bold text-slate-400 mb-1">Total XP Points</label>
                       <input
                         type="number"
                         value={editingUser.points || 0}
                         onChange={(e) => setEditingUser({ ...editingUser, points: e.target.value })}
-                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium text-xs"
+                        className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white font-medium text-xs outline-none"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-slate-500 mb-1">Streak Days</label>
+                      <label className="block text-xs font-bold text-slate-400 mb-1">Streak Days</label>
                       <input
                         type="number"
                         value={editingUser.current_streak || 1}
                         onChange={(e) => setEditingUser({ ...editingUser, current_streak: e.target.value })}
-                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium text-xs"
+                        className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white font-medium text-xs outline-none"
                       />
                     </div>
                   </div>
@@ -1619,49 +1490,49 @@ Drill 2: How are you feeling today? I am very happy today.`
           <div className="space-y-6 animate-in fade-in">
             <button
               onClick={() => setSelectedStudentDetail(null)}
-              className="flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-slate-900 bg-white px-4 py-2 rounded-xl border border-slate-200"
+              className="flex items-center gap-2 text-xs font-bold text-slate-300 hover:text-white bg-slate-950 px-4 py-2 rounded-xl border border-slate-800"
             >
               <ArrowLeft className="w-4 h-4" /> Back to Student Roster
             </button>
 
-            <div className="bg-white border border-slate-200 p-6 rounded-3xl">
+            <div className="bg-slate-950 border border-slate-800 p-6 rounded-3xl">
               <div className="flex justify-between items-start">
                 <div>
-                  <h2 className="text-2xl font-black text-slate-900">{selectedStudentDetail.full_name}</h2>
-                  <p className="text-xs text-indigo-600 font-bold mt-1">
+                  <h2 className="text-2xl font-black text-white">{selectedStudentDetail.full_name}</h2>
+                  <p className="text-xs text-indigo-400 font-bold mt-1">
                     {selectedStudentDetail.schools?.name} • Grade {selectedStudentDetail.grade} - Section {selectedStudentDetail.section}
                   </p>
                 </div>
                 <div className="flex gap-3">
-                  <span className="px-4 py-2 bg-amber-500/10 border border-amber-500/20 text-amber-600 rounded-2xl font-black text-sm">
+                  <span className="px-4 py-2 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-2xl font-black text-sm">
                     {selectedStudentDetail.points || 0} XP
                   </span>
-                  <span className="px-4 py-2 bg-rose-500/10 border border-rose-500/20 text-rose-500 rounded-2xl font-black text-sm">
+                  <span className="px-4 py-2 bg-rose-500/10 border border-rose-500/20 text-rose-400 rounded-2xl font-black text-sm">
                     {selectedStudentDetail.current_streak || 1} Day Streak
                   </span>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white border border-slate-200 p-6 rounded-3xl space-y-4">
-              <h3 className="font-bold text-lg text-slate-900 flex items-center gap-2">
+            <div className="bg-slate-950 border border-slate-800 p-6 rounded-3xl space-y-4">
+              <h3 className="font-bold text-lg text-white flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-indigo-400" /> Speech & AI Evaluation History
               </h3>
               <div className="space-y-3">
                 {speechLogs.filter(log => log.student_id === selectedStudentDetail.id).length === 0 ? (
-                  <p className="text-slate-500 text-sm">No speaking attempts recorded yet for this student.</p>
+                  <p className="text-slate-400 text-sm">No speaking attempts recorded yet for this student.</p>
                 ) : (
                   speechLogs.filter(log => log.student_id === selectedStudentDetail.id).map(log => (
-                    <div key={log.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
+                    <div key={log.id} className="p-4 bg-slate-900 rounded-2xl border border-slate-800 space-y-2">
                       <div className="flex justify-between items-center">
-                        <span className="text-xs font-bold text-indigo-600">{log.lessons?.title}</span>
-                        <span className="text-sm font-black text-emerald-600">{log.overall_score}% Overall Score</span>
+                        <span className="text-xs font-bold text-indigo-400">{log.lessons?.title}</span>
+                        <span className="text-sm font-black text-emerald-400">{log.overall_score}% Overall Score</span>
                       </div>
-                      <p className="text-xs text-slate-600 italic">"{log.transcribed_text}"</p>
-                      <div className="flex gap-4 text-xs font-bold text-slate-500 pt-1 border-t border-slate-200">
-                        <span>Pronunciation: <strong className="text-slate-900">{log.pronunciation_score}%</strong></span>
-                        <span>Fluency: <strong className="text-slate-900">{log.fluency_score}%</strong></span>
-                        <span>Vocabulary: <strong className="text-slate-900">{log.vocabulary_score}%</strong></span>
+                      <p className="text-xs text-slate-300 italic">"{log.transcribed_text}"</p>
+                      <div className="flex gap-4 text-xs font-bold text-slate-400 pt-1 border-t border-slate-800">
+                        <span>Pronunciation: <strong className="text-white">{log.pronunciation_score}%</strong></span>
+                        <span>Fluency: <strong className="text-white">{log.fluency_score}%</strong></span>
+                        <span>Vocabulary: <strong className="text-white">{log.vocabulary_score}%</strong></span>
                       </div>
                     </div>
                   ))
@@ -1674,15 +1545,15 @@ Drill 2: How are you feeling today? I am very happy today.`
         {/* TAB: LESSONS CURRICULUM BUILDER */}
         {activeTab === 'lessons' && (
           <div className="space-y-6">
-            <div className="bg-white border border-slate-200 p-6 rounded-3xl space-y-6 shadow-sm">
+            <div className="bg-slate-950 border border-slate-800 p-6 rounded-3xl space-y-6 shadow-sm">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                  <h2 className="text-xl font-black flex items-center gap-2 text-slate-900">
-                    <BookOpen className="w-6 h-6 text-emerald-600" /> 
-                    {editingLessonId ? 'Edit Global Lesson' : 'Master Lesson & Teacher Instruction Builder'}
+                  <h2 className="text-xl font-black flex items-center gap-2 text-white">
+                    <BookOpen className="w-6 h-6 text-emerald-400" /> 
+                    {editingLessonId ? 'Edit Global Lesson' : 'Smart Class Lesson & Video Builder'}
                   </h2>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Add lesson material along with step-by-step guidance for teachers to take class live.
+                  <p className="text-xs text-slate-400 mt-1">
+                    Add lesson material along with smart class video URLs for teaching.
                   </p>
                 </div>
                 <div className="flex gap-2">
@@ -1691,7 +1562,7 @@ Drill 2: How are you feeling today? I am very happy today.`
                     onClick={handleAutoDeployLesson1With15Questions}
                     className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black text-xs rounded-xl shadow-md transition"
                   >
-                    <Zap className="w-4 h-4 fill-amber-300 text-amber-300" /> ⚡ Auto-Deploy Lesson 1 + 15 Questions
+                    <Zap className="w-4 h-4 fill-amber-300 text-amber-300" /> ⚡ Auto-Deploy Smart Lesson
                   </button>
                   {editingLessonId && (
                     <button
@@ -1700,8 +1571,9 @@ Drill 2: How are you feeling today? I am very happy today.`
                         setLessonTitle('');
                         setLessonDesc('');
                         setLessonImage('');
+                        setLessonVideoUrl('');
                       }}
-                      className="text-xs font-bold px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-xl"
+                      className="text-xs font-bold px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl"
                     >
                       Cancel Edit
                     </button>
@@ -1710,14 +1582,13 @@ Drill 2: How are you feeling today? I am very happy today.`
               </div>
 
               <form onSubmit={editingLessonId ? handleUpdateLesson : handleCreateLesson} className="space-y-6">
-                {/* Meta details */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-1">Target Grade</label>
+                    <label className="block text-xs font-bold text-slate-400 mb-1">Target Grade</label>
                     <select
                       value={lessonGrade}
                       onChange={(e) => setLessonGrade(e.target.value)}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-bold outline-none focus:border-emerald-500"
+                      className="w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-white font-bold outline-none focus:border-emerald-500"
                     >
                       {[1,2,3,4,5,6,7,8,9,10].map(g => (
                         <option key={g} value={g}>Grade {g}</option>
@@ -1725,44 +1596,59 @@ Drill 2: How are you feeling today? I am very happy today.`
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-1">Lesson Number</label>
+                    <label className="block text-xs font-bold text-slate-400 mb-1">Lesson Number</label>
                     <input
                       type="number"
                       value={lessonNumber}
                       onChange={(e) => setLessonNumber(e.target.value)}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-bold outline-none focus:border-emerald-500"
+                      className="w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-white font-bold outline-none focus:border-emerald-500"
                       min="1"
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-1">Lesson Title</label>
+                    <label className="block text-xs font-bold text-slate-400 mb-1">Lesson Title</label>
                     <input
                       type="text"
                       placeholder="e.g. Greetings"
                       value={lessonTitle}
                       onChange={(e) => setLessonTitle(e.target.value)}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-bold outline-none focus:border-emerald-500"
+                      className="w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-white font-bold outline-none focus:border-emerald-500"
                       required
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1">Lesson Description</label>
+                  <label className="block text-xs font-bold text-slate-400 mb-1">Lesson Description</label>
                   <input
                     type="text"
                     placeholder="Learn to greet people politely in everyday situations."
                     value={lessonDesc}
                     onChange={(e) => setLessonDesc(e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-medium outline-none focus:border-emerald-500"
+                    className="w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-white font-medium outline-none focus:border-emerald-500"
                     required
                   />
                 </div>
 
+                {/* Smart Class Video URL Input */}
+                <div className="p-5 bg-indigo-950/40 rounded-2xl border border-indigo-900/50 space-y-3">
+                  <div className="flex items-center gap-2 text-indigo-400 text-xs font-black uppercase">
+                    <Video className="w-4 h-4" /> 🎬 Smart Class Topic Video URL (YouTube / MP4 Embed)
+                  </div>
+                  <input
+                    type="url"
+                    placeholder="https://www.youtube.com/embed/..."
+                    value={lessonVideoUrl}
+                    onChange={(e) => setLessonVideoUrl(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-white text-xs font-medium outline-none focus:border-indigo-500"
+                  />
+                  <p className="text-[11px] text-slate-400">Teachers play this video on the smart board to help students understand the topic before activities.</p>
+                </div>
+
                 {/* Lesson Visual / Reference Image URL */}
-                <div className="p-5 bg-slate-50/70 rounded-2xl border border-slate-200 space-y-3">
-                  <div className="flex items-center gap-2 text-indigo-700 text-xs font-black uppercase">
+                <div className="p-5 bg-slate-900/60 rounded-2xl border border-slate-800 space-y-3">
+                  <div className="flex items-center gap-2 text-indigo-400 text-xs font-black uppercase">
                     <ImageIcon className="w-4 h-4" /> 🖼️ Lesson Visual / Reference Image (Optional)
                   </div>
                   <input
@@ -1770,140 +1656,119 @@ Drill 2: How are you feeling today? I am very happy today.`
                     placeholder="https://ihmtwngbrrkqbqwbxzah.supabase.co/storage/v1/object/public/lesson-assets/..."
                     value={lessonImage}
                     onChange={(e) => setLessonImage(e.target.value)}
-                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-900 text-xs font-medium outline-none focus:border-indigo-500"
+                    className="w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-white text-xs font-medium outline-none focus:border-indigo-500"
                   />
                   {lessonImage && (
                     <div className="mt-2 flex items-center gap-4">
-                      <div className="relative w-36 h-24 rounded-xl overflow-hidden border border-slate-300 shadow-sm bg-slate-100">
+                      <div className="relative w-36 h-24 rounded-xl overflow-hidden border border-slate-700 shadow-sm bg-slate-900">
                         <img src={lessonImage} alt="Visual Preview" className="w-full h-full object-cover" />
                       </div>
-                      <div className="text-xs text-slate-500">
-                        <span className="font-bold text-emerald-600">✓ Image Preview Loaded</span>
-                        <p className="text-[11px] text-slate-400 mt-0.5">This picture will be displayed during in-class roleplay & dialogue practice.</p>
+                      <div className="text-xs text-slate-400">
+                        <span className="font-bold text-emerald-400">✓ Image Preview Loaded</span>
                       </div>
                     </div>
                   )}
                 </div>
 
                 {/* Section 1: Objectives */}
-                <div className="p-5 bg-slate-50/70 rounded-2xl border border-slate-200 space-y-3">
-                  <div className="flex items-center gap-2 text-indigo-700 text-xs font-black uppercase">
-                    <Info className="w-4 h-4" /> 🛠️ Teacher Instruction: How to Teach Section 1 (Objectives)
+                <div className="p-5 bg-slate-900/60 rounded-2xl border border-slate-800 space-y-3">
+                  <div className="flex items-center gap-2 text-indigo-400 text-xs font-black uppercase">
+                    <Info className="w-4 h-4" /> 🛠️ Teacher Instruction: Section 1 (Objectives)
                   </div>
                   <input
                     type="text"
                     placeholder="Instructions for the teacher..."
                     value={instObj}
                     onChange={(e) => setInstObj(e.target.value)}
-                    className="w-full px-4 py-2 bg-white border border-indigo-100 rounded-xl text-xs font-medium text-slate-700 outline-none"
+                    className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs font-medium text-slate-200 outline-none"
                   />
-                  <label className="block text-xs font-bold text-slate-500">🎯 1. Learning Objectives (One per line)</label>
+                  <label className="block text-xs font-bold text-slate-400">🎯 1. Learning Objectives (One per line)</label>
                   <textarea
                     value={learningObjectives}
                     onChange={(e) => setLearningObjectives(e.target.value)}
-                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-900 text-sm font-medium h-24 outline-none focus:border-emerald-500"
+                    className="w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-white text-sm font-medium h-24 outline-none focus:border-emerald-500"
                   />
                 </div>
 
                 {/* Section 2: Vocabulary */}
-                <div className="p-5 bg-slate-50/70 rounded-2xl border border-slate-200 space-y-3">
-                  <div className="flex items-center gap-2 text-indigo-700 text-xs font-black uppercase">
-                    <Info className="w-4 h-4" /> 🛠️ Teacher Instruction: How to Teach Section 2 (Vocabulary Bank)
+                <div className="p-5 bg-slate-900/60 rounded-2xl border border-slate-800 space-y-3">
+                  <div className="flex items-center gap-2 text-indigo-400 text-xs font-black uppercase">
+                    <Info className="w-4 h-4" /> 🛠️ Teacher Instruction: Section 2 (Vocabulary Bank)
                   </div>
                   <input
                     type="text"
                     placeholder="Instructions for the teacher..."
                     value={instVocab}
                     onChange={(e) => setInstVocab(e.target.value)}
-                    className="w-full px-4 py-2 bg-white border border-indigo-100 rounded-xl text-xs font-medium text-slate-700 outline-none"
+                    className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs font-medium text-slate-200 outline-none"
                   />
-                  <label className="block text-xs font-bold text-slate-500">📖 2. Vocabulary Words (One per line, e.g. "Hello: Meaning")</label>
+                  <label className="block text-xs font-bold text-slate-400">📖 2. Vocabulary Words (One per line)</label>
                   <textarea
                     value={vocabInput}
                     onChange={(e) => setVocabInput(e.target.value)}
-                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-900 text-sm font-medium h-24 outline-none focus:border-emerald-500"
+                    className="w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-white text-sm font-medium h-24 outline-none focus:border-emerald-500"
                   />
                 </div>
 
                 {/* Section 3: Related Phrases */}
-                <div className="p-5 bg-slate-50/70 rounded-2xl border border-slate-200 space-y-3">
-                  <div className="flex items-center gap-2 text-indigo-700 text-xs font-black uppercase">
-                    <Info className="w-4 h-4" /> 🛠️ Teacher Instruction: How to Teach Section 3 (Related Vocabulary & Daily Phrases)
+                <div className="p-5 bg-slate-900/60 rounded-2xl border border-slate-800 space-y-3">
+                  <div className="flex items-center gap-2 text-indigo-400 text-xs font-black uppercase">
+                    <Info className="w-4 h-4" /> 🛠️ Teacher Instruction: Section 3 (Useful Sentences)
                   </div>
                   <input
                     type="text"
                     placeholder="Instructions for the teacher..."
                     value={instPhrases}
                     onChange={(e) => setInstPhrases(e.target.value)}
-                    className="w-full px-4 py-2 bg-white border border-indigo-100 rounded-xl text-xs font-medium text-slate-700 outline-none"
+                    className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs font-medium text-slate-200 outline-none"
                   />
-                  <label className="block text-xs font-bold text-slate-500">💬 3. Related Vocabulary & Daily Phrases Practice (One per line)</label>
+                  <label className="block text-xs font-bold text-slate-400">💬 3. Useful Sentences (One per line)</label>
                   <textarea
                     value={usefulSentences}
                     onChange={(e) => setUsefulSentences(e.target.value)}
-                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-900 text-sm font-medium h-32 outline-none focus:border-emerald-500"
+                    className="w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-white text-sm font-medium h-32 outline-none focus:border-emerald-500"
                   />
                 </div>
 
                 {/* Section 4: Conversation Dialogue */}
-                <div className="p-5 bg-slate-50/70 rounded-2xl border border-slate-200 space-y-3">
-                  <div className="flex items-center gap-2 text-indigo-700 text-xs font-black uppercase">
-                    <Info className="w-4 h-4" /> 🛠️ Teacher Instruction: How to Teach Section 4 (Conversation Dialogue in Pairs)
+                <div className="p-5 bg-slate-900/60 rounded-2xl border border-slate-800 space-y-3">
+                  <div className="flex items-center gap-2 text-indigo-400 text-xs font-black uppercase">
+                    <Info className="w-4 h-4" /> 🛠️ Teacher Instruction: Section 4 (Pair Dialogue)
                   </div>
                   <input
                     type="text"
                     placeholder="Instructions for the teacher..."
                     value={instConv}
                     onChange={(e) => setInstConv(e.target.value)}
-                    className="w-full px-4 py-2 bg-white border border-indigo-100 rounded-xl text-xs font-medium text-slate-700 outline-none"
+                    className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs font-medium text-slate-200 outline-none"
                   />
-                  <label className="block text-xs font-bold text-slate-500">👥 4. Conversation Dialogue (Speaker: Dialogue Line)</label>
+                  <label className="block text-xs font-bold text-slate-400">👥 4. Conversation Dialogue (Speaker: Dialogue Line)</label>
                   <textarea
                     value={conversationDialogue}
                     onChange={(e) => setConversationDialogue(e.target.value)}
-                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-900 text-sm font-medium h-32 outline-none focus:border-emerald-500 font-mono"
-                  />
-                </div>
-
-                {/* Section 5: Repeat & Fluency Drill */}
-                <div className="p-5 bg-slate-50/70 rounded-2xl border border-slate-200 space-y-3">
-                  <div className="flex items-center gap-2 text-indigo-700 text-xs font-black uppercase">
-                    <Info className="w-4 h-4" /> 🛠️ Teacher Instruction: How to Teach Section 5 (Repeat & Fluency Drill)
-                  </div>
-                  <input
-                    type="text"
-                    placeholder="Instructions for the teacher..."
-                    value={instDrill}
-                    onChange={(e) => setInstDrill(e.target.value)}
-                    className="w-full px-4 py-2 bg-white border border-indigo-100 rounded-xl text-xs font-medium text-slate-700 outline-none"
-                  />
-                  <label className="block text-xs font-bold text-slate-500">🗣️ 5. Repeat & Fluency Drill (One per line)</label>
-                  <textarea
-                    value={repeatContent}
-                    onChange={(e) => setRepeatContent(e.target.value)}
-                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-900 text-sm font-medium h-24 outline-none focus:border-emerald-500"
+                    className="w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-white text-sm font-medium h-32 outline-none focus:border-emerald-500 font-mono"
                   />
                 </div>
 
                 {/* At-Home Voice Prompts */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-1">🎤 AI Speech Evaluation Prompt</label>
+                    <label className="block text-xs font-bold text-slate-400 mb-1">🎤 AI Speech Evaluation Prompt</label>
                     <input
                       type="text"
                       value={speakingPrompt}
                       onChange={(e) => setSpeakingPrompt(e.target.value)}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 outline-none focus:border-emerald-500 font-medium"
+                      className="w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-white outline-none focus:border-emerald-500 font-medium"
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-1">🏆 Follow-up 30-Second Speaking Challenge</label>
+                    <label className="block text-xs font-bold text-slate-400 mb-1">🏆 Follow-up 30-Second Speaking Challenge</label>
                     <input
                       type="text"
                       value={speakingChallenge}
                       onChange={(e) => setSpeakingChallenge(e.target.value)}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 outline-none focus:border-emerald-500 font-medium"
+                      className="w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-white outline-none focus:border-emerald-500 font-medium"
                     />
                   </div>
                 </div>
@@ -1922,22 +1787,21 @@ Drill 2: How are you feeling today? I am very happy today.`
             {/* List of Lessons */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {lessonsList.map(l => (
-                <div key={l.id} className="p-5 bg-white border border-slate-200 rounded-3xl space-y-3 shadow-sm flex justify-between items-start">
+                <div key={l.id} className="p-5 bg-slate-950 border border-slate-800 rounded-3xl space-y-3 shadow-sm flex justify-between items-start">
                   <div className="space-y-2 flex-1 pr-4">
-                    <span className="px-3 py-1 bg-emerald-50 text-emerald-700 font-black text-xs rounded-full border border-emerald-200">
+                    <span className="px-3 py-1 bg-emerald-500/10 text-emerald-400 font-black text-xs rounded-full border border-emerald-500/20">
                       GRADE {l.grade} • LESSON {l.lesson_number}
                     </span>
-                    <h3 className="text-lg font-bold text-slate-900">{l.title}</h3>
-                    <p className="text-xs text-slate-500 italic line-clamp-1">Prompt: "{l.speaking_prompt}"</p>
-                    {l.image_url && (
-                      <div className="flex items-center gap-1.5 text-xs text-indigo-600 font-bold">
-                        <ImageIcon className="w-3.5 h-3.5" /> Has Visual Reference Attached
+                    <h3 className="text-lg font-bold text-white">{l.title}</h3>
+                    {l.video_url && (
+                      <div className="flex items-center gap-1.5 text-xs text-indigo-400 font-bold">
+                        <Video className="w-3.5 h-3.5" /> Has Smart Class Video Attached
                       </div>
                     )}
                   </div>
                   <button
                     onClick={() => handleSelectLessonForEdit(l)}
-                    className="px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-xl font-bold text-xs flex items-center gap-1 transition shrink-0"
+                    className="px-3 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/20 rounded-xl font-bold text-xs flex items-center gap-1 transition shrink-0"
                   >
                     <Edit3 className="w-3.5 h-3.5" /> Edit
                   </button>
@@ -1947,128 +1811,129 @@ Drill 2: How are you feeling today? I am very happy today.`
           </div>
         )}
 
-        {/* TAB: ACTIVITIES WITH FULL FILTERS */}
-        {activeTab === 'activities' && (
+        {/* TAB: INTERACTIVE & WORDWALL ACTIVITIES BUILDER */}
+        {activeTab === 'interactive_builder' && (
           <div className="space-y-6">
-            <div className="bg-white border border-slate-200 p-6 rounded-3xl space-y-4 shadow-sm">
-              <h2 className="text-xl font-black text-slate-900 flex items-center gap-2">
-                <Layers className="w-5 h-5 text-amber-500" /> Interactive Activity Creator (Wordwall / Typing)
+            <div className="bg-slate-950 border border-slate-800 p-6 rounded-3xl space-y-4 shadow-sm">
+              <h2 className="text-xl font-black text-white flex items-center gap-2">
+                <Gamepad2 className="w-6 h-6 text-amber-400" /> Interactive & Wordwall Game Creator
               </h2>
-              <form onSubmit={handleCreateActivity} className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <select value={actLessonId} onChange={(e) => setActLessonId(e.target.value)} className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold">
+              <p className="text-xs text-slate-400">Deploy custom letter scrambles, typing challenges, and sentence builder games for communication practice.</p>
+
+              <form onSubmit={handleCreateActivity} className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                <select value={actLessonId} onChange={(e) => setActLessonId(e.target.value)} className="px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-xs font-bold text-white outline-none">
                   {lessonsList.map(l => <option key={l.id} value={l.id}>Grade {l.grade} - Lesson {l.lesson_number}: {l.title}</option>)}
                 </select>
-                <select value={actType} onChange={(e: any) => setActType(e.target.value)} className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold">
+
+                <select value={actType} onChange={(e: any) => setActType(e.target.value)} className="px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-xs font-bold text-white outline-none">
                   <option value="word_builder">🧩 Word Builder (Letter Scramble)</option>
-                  <option value="fill_in_blank">⌨️ Typing Challenge</option>
+                  <option value="fill_in_blank">⌨️ Typing Challenge (Fill Blank)</option>
+                  <option value="sentence_builder">💬 Sentence Builder (Communication Order)</option>
                 </select>
-                <input type="number" value={actPoints} onChange={(e) => setActPoints(e.target.value)} placeholder="Points (8 XP)" className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold" />
-                <input type="text" value={actTitle} onChange={(e) => setActTitle(e.target.value)} placeholder="Activity Title" className="md:col-span-3 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold" required />
-                {actType === 'word_builder' ? (
+
+                <input type="number" value={actPoints} onChange={(e) => setActPoints(e.target.value)} placeholder="Points (8 XP)" className="px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-xs font-bold text-white outline-none" />
+                <input type="text" value={actTitle} onChange={(e) => setActTitle(e.target.value)} placeholder="Activity Title (e.g. Greeting Scramble)" className="md:col-span-3 px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-xs font-bold text-white outline-none" required />
+
+                {actType === 'word_builder' && (
                   <>
-                    <input type="text" value={wbTargetWord} onChange={(e) => setWbTargetWord(e.target.value)} placeholder="Target Word (e.g. HELLO)" className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-mono uppercase font-bold" required />
-                    <input type="text" value={wbClue} onChange={(e) => setWbClue(e.target.value)} placeholder="Clue / Meaning" className="md:col-span-2 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold" required />
-                  </>
-                ) : (
-                  <>
-                    <input type="text" value={actSentence} onChange={(e) => setActSentence(e.target.value)} placeholder="Good ___ teacher (Use '___')" className="md:col-span-2 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold" required />
-                    <input type="text" value={actAnswer} onChange={(e) => setActAnswer(e.target.value)} placeholder="morning, Morning" className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold" required />
+                    <input type="text" value={wbTargetWord} onChange={(e) => setWbTargetWord(e.target.value)} placeholder="Target Word (e.g. HELLO)" className="px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl font-mono uppercase font-bold text-white outline-none" required />
+                    <input type="text" value={wbClue} onChange={(e) => setWbClue(e.target.value)} placeholder="Clue / Meaning" className="md:col-span-2 px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-xs font-bold text-white outline-none" required />
                   </>
                 )}
-                <button type="submit" className="md:col-span-3 py-3.5 bg-amber-600 hover:bg-amber-500 text-white font-black rounded-xl transition">
-                  {editingActivityId ? 'Update Activity' : 'Deploy Activity (+8 XP)'}
+
+                {actType === 'fill_in_blank' && (
+                  <>
+                    <input type="text" value={actSentence} onChange={(e) => setActSentence(e.target.value)} placeholder="Sentence with blank (Use '___' e.g. Good ___ teacher)" className="md:col-span-2 px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-xs font-bold text-white outline-none" required />
+                    <input type="text" value={actAnswer} onChange={(e) => setActAnswer(e.target.value)} placeholder="Accepted Answers (comma separated: morning, Morning)" className="px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-xs font-bold text-white outline-none" required />
+                  </>
+                )}
+
+                {actType === 'sentence_builder' && (
+                  <input type="text" value={sbSentence} onChange={(e) => setSbSentence(e.target.value)} placeholder="Full Sentence to Order (e.g. Good morning teacher how are you)" className="md:col-span-3 px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-xs font-bold text-white outline-none" required />
+                )}
+
+                <button type="submit" className="md:col-span-3 py-4 bg-amber-600 hover:bg-amber-500 text-white font-black rounded-xl transition shadow-lg">
+                  {editingActivityId ? 'Update Interactive Activity' : 'Deploy Interactive Activity (+8 XP)'}
                 </button>
               </form>
             </div>
 
             {/* Activities Filter Toolbar */}
-            <div className="bg-white border border-slate-200 p-4 rounded-3xl flex flex-wrap gap-3 items-center justify-between shadow-sm">
+            <div className="bg-slate-950 border border-slate-800 p-4 rounded-3xl flex flex-wrap gap-3 items-center justify-between shadow-sm">
               <div className="flex flex-wrap gap-3 items-center">
-                <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 rounded-xl border border-slate-200 text-sm">
+                <div className="flex items-center gap-2 px-3 py-2 bg-slate-900 rounded-xl border border-slate-800 text-sm">
                   <Search className="w-4 h-4 text-slate-400" />
                   <input
                     type="text"
-                    placeholder="Search by word, sentence, or title..."
+                    placeholder="Search games & activities..."
                     value={actSearchQuery}
                     onChange={(e) => setActSearchQuery(e.target.value)}
-                    className="bg-transparent outline-none text-slate-900 text-xs font-medium w-48 sm:w-64"
+                    className="bg-transparent outline-none text-white text-xs font-medium w-48 sm:w-64"
                   />
                 </div>
 
                 <select
                   value={actGradeFilter}
-                  onChange={(e) => {
-                    setActGradeFilter(e.target.value);
-                    setActLessonFilter('All');
-                  }}
-                  className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 outline-none"
+                  onChange={(e) => { setActGradeFilter(e.target.value); setActLessonFilter('All'); }}
+                  className="px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs font-bold text-white outline-none"
                 >
                   <option value="All">All Grades</option>
-                  {[1,2,3,4,5,6,7,8,9,10].map(g => (
-                    <option key={g} value={g.toString()}>Grade {g}</option>
-                  ))}
+                  {[1,2,3,4,5,6,7,8,9,10].map(g => <option key={g} value={g.toString()}>Grade {g}</option>)}
                 </select>
 
                 <select
                   value={actLessonFilter}
                   onChange={(e) => setActLessonFilter(e.target.value)}
-                  className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 outline-none max-w-xs truncate"
+                  className="px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs font-bold text-white outline-none max-w-xs truncate"
                 >
                   <option value="All">All Lessons</option>
-                  {lessonsList
-                    .filter(l => actGradeFilter === 'All' || l.grade.toString() === actGradeFilter)
-                    .map(l => (
-                      <option key={l.id} value={l.id}>
-                        G{l.grade} L{l.lesson_number}: {l.title}
-                      </option>
-                    ))}
+                  {lessonsList.filter(l => actGradeFilter === 'All' || l.grade.toString() === actGradeFilter).map(l => (
+                    <option key={l.id} value={l.id}>G{l.grade} L{l.lesson_number}: {l.title}</option>
+                  ))}
                 </select>
 
                 <select
                   value={actTypeFilter}
                   onChange={(e) => setActTypeFilter(e.target.value)}
-                  className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 outline-none"
+                  className="px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs font-bold text-white outline-none"
                 >
-                  <option value="All">All Activity Types</option>
+                  <option value="All">All Game Types</option>
                   <option value="word_builder">🧩 Word Builders</option>
                   <option value="fill_in_blank">⌨️ Typing Challenges</option>
+                  <option value="sentence_builder">💬 Sentence Builders</option>
                 </select>
               </div>
 
-              <div className="text-xs font-bold text-slate-500">
-                Showing <strong className="text-slate-900">{filteredActivities.length}</strong> of {activitiesList.length} Activities
+              <div className="text-xs font-bold text-slate-400">
+                Showing <strong className="text-white">{filteredActivities.length}</strong> of {activitiesList.length} Games
               </div>
             </div>
 
-            {/* Filtered Activities List */}
-            <div className="bg-white border border-slate-200 rounded-3xl p-6 space-y-4 shadow-sm">
+            <div className="bg-slate-950 border border-slate-800 rounded-3xl p-6 space-y-4 shadow-sm">
               <div className="space-y-3">
                 {filteredActivities.length === 0 ? (
-                  <p className="text-xs text-slate-500 italic">No activities match your selected filter criteria.</p>
+                  <p className="text-xs text-slate-400 italic">No activities match your selected filter criteria.</p>
                 ) : (
                   filteredActivities.map(act => (
-                    <div key={act.id} className="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex justify-between items-center">
+                    <div key={act.id} className="p-4 bg-slate-900 border border-slate-800 rounded-2xl flex justify-between items-center">
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="px-2.5 py-0.5 bg-amber-500/20 text-amber-700 font-bold text-[10px] rounded-md uppercase">
-                            {act.type === 'word_builder' ? 'Word Builder' : 'Typing Challenge'}
+                          <span className={`px-2.5 py-0.5 font-bold text-[10px] rounded-md uppercase border ${
+                            act.type === 'word_builder' ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' : act.type === 'sentence_builder' ? 'bg-pink-500/20 text-pink-300 border-pink-500/30' : 'bg-purple-500/20 text-purple-300 border-purple-500/30'
+                          }`}>
+                            {act.type === 'word_builder' ? 'Word Builder' : act.type === 'sentence_builder' ? 'Sentence Builder' : 'Typing Challenge'}
                           </span>
-                          <span className="text-xs font-bold text-indigo-600">
+                          <span className="text-xs font-bold text-indigo-400">
                             Grade {act.lessons?.grade} - Lesson {act.lessons?.lesson_number}: {act.lessons?.title}
                           </span>
                         </div>
-                        <h4 className="font-bold text-slate-900 text-sm mt-1">{act.title}</h4>
-                        {act.type === 'word_builder' ? (
-                          <p className="text-xs text-slate-500 mt-0.5">Target: <strong className="font-mono text-purple-600">{act.question_data?.target_word}</strong> • Clue: {act.question_data?.clue}</p>
-                        ) : (
-                          <p className="text-xs text-slate-500 mt-0.5">Sentence: "{act.question_data?.sentence}" • Answers: [{act.question_data?.acceptable_answers?.join(', ')}]</p>
-                        )}
+                        <h4 className="font-bold text-white text-sm mt-1">{act.title}</h4>
                       </div>
                       <div className="flex gap-2">
-                        <button onClick={() => handleSelectActivityForEdit(act)} className="p-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-xl" title="Edit Activity">
+                        <button onClick={() => handleSelectActivityForEdit(act)} className="p-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded-xl" title="Edit Activity">
                           <Edit3 className="w-4 h-4" />
                         </button>
-                        <button onClick={() => handleDeleteActivity(act.id)} className="p-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl" title="Delete Activity">
+                        <button onClick={() => handleDeleteActivity(act.id)} className="p-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-xl" title="Delete Activity">
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
@@ -2080,25 +1945,25 @@ Drill 2: How are you feeling today? I am very happy today.`
           </div>
         )}
 
-        {/* TAB: QUIZZES WITH FULL FILTERS */}
+        {/* TAB: QUIZZES */}
         {activeTab === 'quizzes' && (
           <div className="space-y-6">
-            <div className="bg-white border border-slate-200 p-6 rounded-3xl space-y-4 shadow-sm">
-              <h2 className="text-xl font-black text-slate-900 flex items-center gap-2">
-                <HelpCircle className="w-5 h-5 text-cyan-600" /> Multiple Choice Quiz Creator
+            <div className="bg-slate-950 border border-slate-800 p-6 rounded-3xl space-y-4 shadow-sm">
+              <h2 className="text-xl font-black text-white flex items-center gap-2">
+                <HelpCircle className="w-5 h-5 text-cyan-400" /> Multiple Choice Quiz Creator
               </h2>
               <form onSubmit={handleCreateQuiz} className="space-y-4">
-                <select value={quizLessonId} onChange={(e) => setQuizLessonId(e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold">
+                <select value={quizLessonId} onChange={(e) => setQuizLessonId(e.target.value)} className="w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-xs font-bold text-white outline-none">
                   {lessonsList.map(l => <option key={l.id} value={l.id}>Grade {l.grade} - Lesson {l.lesson_number}: {l.title}</option>)}
                 </select>
-                <input type="text" value={quizQuestion} onChange={(e) => setQuizQuestion(e.target.value)} placeholder="Question Prompt" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold" required />
+                <input type="text" value={quizQuestion} onChange={(e) => setQuizQuestion(e.target.value)} placeholder="Question Prompt" className="w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-xs font-bold text-white outline-none" required />
                 <div className="grid grid-cols-2 gap-4">
-                  <input type="text" value={optA} onChange={(e) => setOptA(e.target.value)} placeholder="Option A" className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium" required />
-                  <input type="text" value={optB} onChange={(e) => setOptB(e.target.value)} placeholder="Option B" className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium" required />
-                  <input type="text" value={optC} onChange={(e) => setOptC(e.target.value)} placeholder="Option C" className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium" required />
-                  <input type="text" value={optD} onChange={(e) => setOptD(e.target.value)} placeholder="Option D" className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium" required />
+                  <input type="text" value={optA} onChange={(e) => setOptA(e.target.value)} placeholder="Option A" className="px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-xs font-medium text-white outline-none" required />
+                  <input type="text" value={optB} onChange={(e) => setOptB(e.target.value)} placeholder="Option B" className="px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-xs font-medium text-white outline-none" required />
+                  <input type="text" value={optC} onChange={(e) => setOptC(e.target.value)} placeholder="Option C" className="px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-xs font-medium text-white outline-none" required />
+                  <input type="text" value={optD} onChange={(e) => setOptD(e.target.value)} placeholder="Option D" className="px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-xs font-medium text-white outline-none" required />
                 </div>
-                <select value={correctOptIndex} onChange={(e) => setCorrectOptIndex(e.target.value)} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold">
+                <select value={correctOptIndex} onChange={(e) => setCorrectOptIndex(e.target.value)} className="w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-xs font-bold text-white outline-none">
                   <option value="0">Correct: Option A</option>
                   <option value="1">Correct: Option B</option>
                   <option value="2">Correct: Option C</option>
@@ -2111,172 +1976,69 @@ Drill 2: How are you feeling today? I am very happy today.`
             </div>
 
             {/* Quizzes Filter Toolbar */}
-            <div className="bg-white border border-slate-200 p-4 rounded-3xl flex flex-wrap gap-3 items-center justify-between shadow-sm">
+            <div className="bg-slate-950 border border-slate-800 p-4 rounded-3xl flex flex-wrap gap-3 items-center justify-between shadow-sm">
               <div className="flex flex-wrap gap-3 items-center">
-                <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 rounded-xl border border-slate-200 text-sm">
+                <div className="flex items-center gap-2 px-3 py-2 bg-slate-900 rounded-xl border border-slate-800 text-sm">
                   <Search className="w-4 h-4 text-slate-400" />
                   <input
                     type="text"
                     placeholder="Search question prompt..."
                     value={quizSearchQuery}
                     onChange={(e) => setQuizSearchQuery(e.target.value)}
-                    className="bg-transparent outline-none text-slate-900 text-xs font-medium w-48 sm:w-64"
+                    className="bg-transparent outline-none text-white text-xs font-medium w-48 sm:w-64"
                   />
                 </div>
 
                 <select
                   value={quizGradeFilter}
-                  onChange={(e) => {
-                    setQuizGradeFilter(e.target.value);
-                    setQuizLessonFilter('All');
-                  }}
-                  className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 outline-none"
+                  onChange={(e) => { setQuizGradeFilter(e.target.value); setQuizLessonFilter('All'); }}
+                  className="px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs font-bold text-white outline-none"
                 >
                   <option value="All">All Grades</option>
-                  {[1,2,3,4,5,6,7,8,9,10].map(g => (
-                    <option key={g} value={g.toString()}>Grade {g}</option>
-                  ))}
+                  {[1,2,3,4,5,6,7,8,9,10].map(g => <option key={g} value={g.toString()}>Grade {g}</option>)}
                 </select>
 
                 <select
                   value={quizLessonFilter}
                   onChange={(e) => setQuizLessonFilter(e.target.value)}
-                  className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 outline-none max-w-xs truncate"
+                  className="px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs font-bold text-white outline-none max-w-xs truncate"
                 >
                   <option value="All">All Lessons</option>
-                  {lessonsList
-                    .filter(l => quizGradeFilter === 'All' || l.grade.toString() === quizGradeFilter)
-                    .map(l => (
-                      <option key={l.id} value={l.id}>
-                        G{l.grade} L{l.lesson_number}: {l.title}
-                      </option>
-                    ))}
+                  {lessonsList.filter(l => quizGradeFilter === 'All' || l.grade.toString() === quizGradeFilter).map(l => (
+                    <option key={l.id} value={l.id}>G{l.grade} L{l.lesson_number}: {l.title}</option>
+                  ))}
                 </select>
               </div>
 
-              <div className="text-xs font-bold text-slate-500">
-                Showing <strong className="text-slate-900">{filteredQuizzes.length}</strong> of {quizzesList.length} Quizzes
+              <div className="text-xs font-bold text-slate-400">
+                Showing <strong className="text-white">{filteredQuizzes.length}</strong> of {quizzesList.length} Quizzes
               </div>
             </div>
 
-            {/* Filtered Quizzes List */}
-            <div className="bg-white border border-slate-200 rounded-3xl p-6 space-y-4 shadow-sm">
+            <div className="bg-slate-950 border border-slate-800 rounded-3xl p-6 space-y-4 shadow-sm">
               <div className="space-y-3">
                 {filteredQuizzes.length === 0 ? (
-                  <p className="text-xs text-slate-500 italic">No quiz questions match your selected filter criteria.</p>
+                  <p className="text-xs text-slate-400 italic">No quiz questions match your selected filter criteria.</p>
                 ) : (
                   filteredQuizzes.map(q => (
-                    <div key={q.id} className="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex justify-between items-center">
+                    <div key={q.id} className="p-4 bg-slate-900 border border-slate-800 rounded-2xl flex justify-between items-center">
                       <div>
-                        <span className="text-xs font-bold text-cyan-600">
+                        <span className="text-xs font-bold text-cyan-400">
                           Grade {q.lessons?.grade} - Lesson {q.lessons?.lesson_number}: {q.lessons?.title}
                         </span>
-                        <h4 className="font-bold text-slate-900 text-sm mt-1">{q.question}</h4>
-                        <div className="flex flex-wrap gap-2 mt-2 text-[11px] text-slate-600">
-                          {q.options?.map((opt: string, idx: number) => (
-                            <span key={idx} className={`px-2 py-0.5 rounded-md ${idx === q.correct_option_index ? 'bg-emerald-500/20 text-emerald-700 font-bold' : 'bg-slate-200'}`}>
-                              {String.fromCharCode(65 + idx)}: {opt}
-                            </span>
-                          ))}
-                        </div>
+                        <h4 className="font-bold text-white text-sm mt-1">{q.question}</h4>
                       </div>
                       <div className="flex gap-2">
-                        <button onClick={() => handleSelectQuizForEdit(q)} className="p-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-xl" title="Edit Quiz">
+                        <button onClick={() => handleSelectQuizForEdit(q)} className="p-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded-xl" title="Edit Quiz">
                           <Edit3 className="w-4 h-4" />
                         </button>
-                        <button onClick={() => handleDeleteQuiz(q.id)} className="p-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl" title="Delete Quiz">
+                        <button onClick={() => handleDeleteQuiz(q.id)} className="p-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 rounded-xl" title="Delete Quiz">
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </div>
                   ))
                 )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* TAB: GAMIFICATION */}
-        {activeTab === 'gamification' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white border border-slate-200 p-6 rounded-3xl space-y-4 shadow-sm">
-              <h2 className="text-lg font-black text-slate-900 flex items-center gap-2">
-                <Award className="w-5 h-5 text-amber-500" /> Points Configuration
-              </h2>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
-                  <span className="text-sm font-bold text-slate-600">Complete Master Lesson</span>
-                  <input
-                    type="number"
-                    value={ptsLesson}
-                    onChange={(e) => setPtsLesson(parseInt(e.target.value))}
-                    className="w-20 px-3 py-1.5 bg-white border border-slate-300 rounded-xl text-slate-900 text-center font-bold"
-                  />
-                </div>
-
-                <div className="flex justify-between items-center bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
-                  <span className="text-sm font-bold text-slate-600">AI Speech Attempt</span>
-                  <input
-                    type="number"
-                    value={ptsSpeaking}
-                    onChange={(e) => setPtsSpeaking(parseInt(e.target.value))}
-                    className="w-20 px-3 py-1.5 bg-white border border-slate-300 rounded-xl text-slate-900 text-center font-bold"
-                  />
-                </div>
-
-                <div className="flex justify-between items-center bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
-                  <span className="text-sm font-bold text-slate-600">Wordwall Activity Completed</span>
-                  <input
-                    type="number"
-                    value={ptsActivity}
-                    onChange={(e) => setPtsActivity(parseInt(e.target.value))}
-                    className="w-20 px-3 py-1.5 bg-white border border-slate-300 rounded-xl text-slate-900 text-center font-bold"
-                  />
-                </div>
-
-                <div className="flex justify-between items-center bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
-                  <span className="text-sm font-bold text-slate-600">Quiz Completed</span>
-                  <input
-                    type="number"
-                    value={ptsQuiz}
-                    onChange={(e) => setPtsQuiz(parseInt(e.target.value))}
-                    className="w-20 px-3 py-1.5 bg-white border border-slate-300 rounded-xl text-slate-900 text-center font-bold"
-                  />
-                </div>
-
-                <button
-                  onClick={() => {
-                    setStatusMsg('Gamification point rules updated across all schools!');
-                    setTimeout(() => setStatusMsg(''), 3000);
-                  }}
-                  className="w-full py-3 bg-amber-600 hover:bg-amber-500 text-white font-black rounded-xl transition shadow-lg"
-                >
-                  Save Point Values
-                </button>
-              </div>
-            </div>
-
-            <div className="bg-white border border-slate-200 p-6 rounded-3xl space-y-4 shadow-sm">
-              <h2 className="text-lg font-black text-slate-900 flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-pink-600" /> Configured Student Badges
-              </h2>
-              <div className="space-y-3">
-                {badgesList.map(b => (
-                  <div key={b.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 bg-pink-500/20 text-pink-600 rounded-xl">
-                        <Award className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-slate-900 text-sm">{b.name}</h4>
-                        <p className="text-xs text-slate-500">{b.description}</p>
-                      </div>
-                    </div>
-                    <span className="text-xs px-2.5 py-1 bg-slate-100 text-slate-600 font-bold rounded-lg uppercase">
-                      {b.criteria_type}
-                    </span>
-                  </div>
-                ))}
               </div>
             </div>
           </div>
