@@ -1,4 +1,3 @@
-// Simple sound utility using Web Audio API or audio elements
 export const playSound = (type: 'click' | 'correct' | 'wrong' | 'win') => {
   if (typeof window === 'undefined') return;
 
@@ -20,8 +19,8 @@ export const playSound = (type: 'click' | 'correct' | 'wrong' | 'win') => {
       osc.stop(now + 0.05);
     } else if (type === 'correct') {
       osc.type = 'triangle';
-      osc.frequency.setValueAtTime(587.33, now); // D5
-      osc.frequency.setValueAtTime(880, now + 0.08); // A5
+      osc.frequency.setValueAtTime(587.33, now); 
+      osc.frequency.setValueAtTime(880, now + 0.08); 
       gainNode.gain.setValueAtTime(0.15, now);
       gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
       osc.start(now);
@@ -35,8 +34,7 @@ export const playSound = (type: 'click' | 'correct' | 'wrong' | 'win') => {
       osc.start(now);
       osc.stop(now + 0.25);
     } else if (type === 'win') {
-      // Triumphant mini arpeggio
-      const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+      const notes = [523.25, 659.25, 783.99, 1046.50]; 
       notes.forEach((freq, idx) => {
         const subOsc = audioCtx.createOscillator();
         const subGain = audioCtx.createGain();
